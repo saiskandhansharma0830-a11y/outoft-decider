@@ -259,6 +259,17 @@ body.sheet-open { overflow: hidden; }
 .tile .tn { font-size: .75rem; text-align: center; line-height: 1.2; }
 .tile[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), 0 0 0 3px #fff, 0 0 0 5px var(--accent); }
 .tile[aria-pressed="true"] .tn { font-weight: 600; }
+.link-btn.back { padding: 10px 0; font-size: 1rem; }
+.mix-preview { display: flex; align-items: center; gap: 16px; margin: 4px 0 20px; }
+.mix-swatch { flex: none; width: 76px; height: 76px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.mix-name { font-size: 1.25rem; font-weight: 600; }
+.mix-label { display: block; font-size: .8125rem; font-weight: 600; color: var(--muted); margin: 16px 0 8px; }
+.mix-range { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; border-radius: 17px; border: 0; outline: 0; margin: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); touch-action: pan-y; }
+.mix-range::-webkit-slider-thumb { -webkit-appearance: none; width: 38px; height: 38px; border-radius: 50%; background: #fff;
+  border: 0; box-shadow: 0 1px 6px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08); }
+.mix-range::-moz-range-thumb { width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 1px 6px rgba(0,0,0,.35); }
+.mix-use { width: 100%; margin-top: 26px; }
 #outfitArea { scroll-margin-top: 56px; }
 #weatherSeg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 #weatherSeg button { padding: 8px 0; font-size: .9375rem; text-align: center; }
@@ -1678,8 +1689,43 @@ function renderColourSheet() {
     const c = COLOR_MAP[id];
     return `<button type="button" class="tile" data-colour="${id}" aria-pressed="${sel === id}" aria-label="${c.label}"><span class="sw" style="background:${c.hex}"></span><span class="tn">${c.label}</span></button>`;
   }).join('')}</div>`).join('') + `<h3 class="cg-title">Something else</h3><div class="tiles">
-    <label class="tile" aria-label="Pick any colour"><span class="sw sw-custom${custom ? ' chosen' : ''}" style="${custom ? 'background:' + sel : ''}">+</span><span class="tn">Any colour</span>
-    <input type="color" id="fColorCustom" class="hidden-input" value="${custom ? sel : '#808080'}"></label></div>`;
+    <button type="button" class="tile" data-custom-open aria-pressed="${custom}" aria-label="Mix any colour"><span class="sw sw-custom${custom ? ' chosen' : ''}" style="${custom ? 'background:' + sel : ''}">+</span><span class="tn">Any colour</span></button></div>`;
+}
+
+/* ---- "Any colour": three simple sliders inside the sheet (no browser colour dialog) ---- */
+const hslToHex = (h, s, l) => {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+  return '#' + [f(0), f(8), f(4)].map(v => v.toString(16).padStart(2, '0')).join('');
+};
+const hexToHsl = (hex) => {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: Math.round(((h * 60) + 360) % 360), s: Math.round(d ? d / (1 - Math.abs(2 * l - 1)) * 100 : 0), l: Math.round(l * 100) };
+};
+let mix = { h: 210, s: 55, l: 50 };
+function renderCustomColour() {
+  const cur = $('#fColor').value;
+  if (HEX_RE.test(cur)) mix = hexToHsl(cur);
+  $('#sheetBody').innerHTML = `<button type="button" class="link-btn back" data-custom-back>‹ All colours</button>
+    <div class="mix-preview"><span class="mix-swatch" id="mixSwatch"></span><div><div class="mix-name" id="mixName"></div><div class="small muted">Drag the sliders to match your clothes</div></div></div>
+    <label class="mix-label" for="mixH">Colour</label><input type="range" class="mix-range" id="mixH" min="0" max="360" value="${mix.h}">
+    <label class="mix-label" for="mixL">Dark to light</label><input type="range" class="mix-range" id="mixL" min="5" max="95" value="${mix.l}">
+    <label class="mix-label" for="mixS">Grey to vivid</label><input type="range" class="mix-range" id="mixS" min="0" max="100" value="${mix.s}">
+    <button type="button" class="btn primary mix-use" data-custom-use>Use this colour</button>`;
+  updateMix();
+}
+function updateMix() {
+  const hex = hslToHex(mix.h, mix.s, mix.l);
+  $('#mixSwatch').style.background = hex;
+  $('#mixName').textContent = colorOf(hex).label;
+  $('#mixH').style.background = 'linear-gradient(90deg,' + [0, 60, 120, 180, 240, 300, 360].map(h => hslToHex(h, mix.s, mix.l)).join(',') + ')';
+  $('#mixL').style.background = `linear-gradient(90deg,${hslToHex(mix.h, mix.s, 5)},${hslToHex(mix.h, mix.s, 50)},${hslToHex(mix.h, mix.s, 95)})`;
+  $('#mixS').style.background = `linear-gradient(90deg,${hslToHex(mix.h, 0, mix.l)},${hslToHex(mix.h, 100, mix.l)})`;
+  return hex;
 }
 function openColourSheet() {
   renderColourSheet();
@@ -2164,10 +2210,15 @@ function init() {
   $('#btnColour').onclick = openColourSheet;
   $('#colourSheet').addEventListener('click', (e) => {
     if (e.target.closest('[data-close]')) return closeColourSheet();
-    const b = e.target.closest('[data-colour]'); if (b) setColour(b.dataset.colour);
+    const b = e.target.closest('[data-colour]'); if (b) return setColour(b.dataset.colour);
+    if (e.target.closest('[data-custom-open]')) { renderCustomColour(); $('#sheetBody').scrollTop = 0; return; }
+    if (e.target.closest('[data-custom-back]')) return renderColourSheet();
+    if (e.target.closest('[data-custom-use]')) setColour(hslToHex(mix.h, mix.s, mix.l));
   });
-  $('#sheetBody').addEventListener('input', (e) => { if (e.target.id === 'fColorCustom') setColour(e.target.value, true); });
-  $('#sheetBody').addEventListener('change', (e) => { if (e.target.id === 'fColorCustom') closeColourSheet(); });
+  $('#sheetBody').addEventListener('input', (e) => {
+    const m = { mixH: 'h', mixL: 'l', mixS: 's' }[e.target.id];
+    if (m) { mix[m] = +e.target.value; updateMix(); }
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeColourSheet(); });
   fillWashSelect($('#fWash'));
   $('#fType').addEventListener('change', suggestWash);
