@@ -205,23 +205,87 @@ input.hidden-input { position: absolute; inset: 0; width: 100%; height: 100%; op
   z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; max-width: calc(100% - 32px); text-align: center;
 }
 #toast.show { opacity: 1; }
+/* =====================================================================
+   Mobile-first: touch feedback, bottom navigation, bigger targets, colour sheet
+   ===================================================================== */
+* { -webkit-tap-highlight-color: transparent; }                       /* no blue flash on tap */
+html { overscroll-behavior-y: none; }
+button, .btn, label.btn, select, summary, .tile, .sw, .colour-trigger { touch-action: manipulation; -webkit-touch-callout: none; }
+button, .btn, .seg button, .tabbar button, .tile, .colour-trigger { -webkit-user-select: none; user-select: none; }
+button:focus:not(:focus-visible), select:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: none; }
+.btn:active, .seg button:active, .tile:active, .colour-trigger:active, .link-btn:active { opacity: .6; }
+.tabbar button:active { opacity: .6; }
+body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+.wrap { padding: 4px 16px 24px; }
+.topbar-inner { padding: 12px 16px 8px; }
+.brand h1 { font-size: 1.125rem; }
+.page-title { font-size: 1.875rem; margin-top: 12px; }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(3, 1fr);
+  background: rgba(255,255,255,.94); -webkit-backdrop-filter: saturate(180%) blur(16px); backdrop-filter: saturate(180%) blur(16px);
+  border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+.tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none;
+  min-height: 54px; border-radius: 12px; color: var(--faint); font-size: .6875rem; font-weight: 500; cursor: pointer; }
+.tabbar button[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.tabbar svg { width: 26px; height: 26px; }
+#toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+.card { padding: 18px; border-radius: 18px; }
+.btn { min-height: 52px; font-size: 1rem; }
+.btn.sm { min-height: 42px; padding: 8px 14px; }
+.seg button { min-height: 46px; padding: 8px 16px; font-size: 1rem; }
+.actions { gap: 10px; }
+.actions .btn { min-height: 56px; font-size: 1.0625rem; font-weight: 600; }
+input[type=text], select { min-height: 52px; }
+.items li { padding: 14px 0; }
+.item-controls select { min-height: 42px; }
+.colour-trigger { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface); font-size: 1rem; text-align: left; cursor: pointer; }
+.colour-trigger .placeholder { color: var(--faint); }
+.colour-trigger .chev { color: var(--faint); font-size: 1.75rem; line-height: 1; }
+.colour-trigger .swatch { align-self: center; margin: 0; }
+#fColor[aria-invalid="true"] ~ .colour-trigger { border-color: var(--bad); }
+body.sheet-open { overflow: hidden; }
+.sheet { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.35); animation: sheet-fade .18s ease; }
+.sheet-panel { position: relative; width: 100%; max-height: 86vh; max-height: 86dvh; background: #fff; border-radius: 22px 22px 0 0;
+  display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); animation: sheet-rise .22s ease; }
+.sheet-grab { width: 40px; height: 5px; border-radius: 3px; background: var(--fill-2); margin: 8px auto 0; flex: none; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 8px; flex: none; }
+.sheet-head h2 { margin: 0; font-size: 1.125rem; }
+.sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 0 16px 24px; }
+.cg-title { font-size: .8125rem; font-weight: 600; color: var(--muted); margin: 14px 0 10px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; }
+.tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; cursor: pointer; font: inherit; color: inherit; }
+.tile .sw { display: block; width: 58px; height: 58px; }
+.tile .tn { font-size: .75rem; text-align: center; line-height: 1.2; }
+.tile[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), 0 0 0 3px #fff, 0 0 0 5px var(--accent); }
+.tile[aria-pressed="true"] .tn { font-weight: 600; }
+#outfitArea { scroll-margin-top: 56px; }
+#weatherSeg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+#weatherSeg button { padding: 8px 0; font-size: .9375rem; text-align: center; }
+#occasionSeg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#occasionSeg button { text-align: center; }
+@keyframes sheet-rise { from { transform: translateY(28px); opacity: .5; } to { transform: none; opacity: 1; } }
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
 
 <header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <h1>Outfit Decider <span>v0</span></h1>
-      <button class="link-btn" id="btnMyData" type="button">My Data</button>
-    </div>
-    <nav class="tabs" role="tablist" aria-label="Main sections">
-      <button role="tab" data-tab="wardrobe" aria-selected="false" aria-controls="tab-wardrobe">My Closet</button>
-      <button role="tab" data-tab="today" aria-selected="true" aria-controls="tab-today">Decide</button>
-    </nav>
-  </div>
+  <div class="topbar-inner"><div class="brand"><h1>Outfit Decider</h1></div></div>
 </header>
+
+<nav class="tabbar" role="tablist" aria-label="Main sections">
+  <button role="tab" data-tab="wardrobe" aria-selected="false" aria-controls="tab-wardrobe">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4l-6 3 2 4 3-1v10h8V10l3 1 2-4-6-3a3 3 0 0 1-6 0z"/></svg>
+    <span>My Closet</span></button>
+  <button role="tab" data-tab="today" aria-selected="true" aria-controls="tab-today">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16l.7 1.8L21.5 18.5l-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+    <span>Decide</span></button>
+  <button role="tab" data-tab="data" aria-selected="false" aria-controls="tab-data">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>
+    <span>My Data</span></button>
+</nav>
 
 <main class="wrap">
   <div id="storageBanner" class="banner warn hidden" role="alert"></div>
@@ -272,9 +336,11 @@ input.hidden-input { position: absolute; inset: 0; width: 100%; height: 100%; op
             <small class="field-error" id="fWashErr" role="alert"></small>
           </label>
         </div>
-        <div class="field"><span>Colour <b id="fColorName" class="colour-name"></b></span>
+        <div class="field"><span>Colour</span>
           <input type="hidden" id="fColor" value="" aria-describedby="fColorErr" aria-invalid="false">
-          <div id="colourGrid" class="colour-grid" role="group" aria-label="Colour"></div>
+          <button type="button" class="colour-trigger" id="btnColour" aria-haspopup="dialog">
+            <span class="swatch lg" id="trigSwatch"></span><span class="grow placeholder" id="trigName">Choose a colour</span><span class="chev" aria-hidden="true">›</span>
+          </button>
           <small class="field-error" id="fColorErr" role="alert"></small>
         </div>
         <button type="submit" class="btn primary block">Add item</button>
@@ -325,6 +391,15 @@ input.hidden-input { position: absolute; inset: 0; width: 100%; height: 100%; op
     </div>
   </section>
 </main>
+
+<div id="colourSheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-backdrop" data-close></div>
+  <div class="sheet-panel">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <div class="sheet-head"><h2 id="sheetTitle">Choose a colour</h2><button class="link-btn" data-close type="button">Cancel</button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -1531,13 +1606,18 @@ function renderOutfit() {
 
   $('#btnGood').onclick = () => recordFeedback('good');
   $('#btnBad').onclick = () => recordFeedback('bad');
-  $('#btnReroll').onclick = () => generate(true);
+  $('#btnReroll').onclick = () => { generate(true); scrollToOutfit(); };
   const bw = $('#btnWear'); if (bw) bw.onclick = wearOutfit;
   const bu = $('#btnUndoWear'); if (bu) bu.onclick = undoWear;
   $('#btnGenerate').textContent = 'Start over';
 }
 
 /* Hoodie notes read "No hoodie: …" or "Grey hoodie added: …"; bold the lead-in. */
+/* After deciding or rerolling, bring the new outfit to the top of the screen. */
+function scrollToOutfit() {
+  const el = $('#outfitArea'); if (!el || !el.firstElementChild) return;
+  el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+}
 function hoodieNoteHtml(note) {
   const i = note.indexOf(': ');
   return i > 0 ? `<b>${escapeHtml(note.slice(0, i + 1))}</b> ${escapeHtml(note.slice(i + 2))}` : escapeHtml(note);
@@ -1591,29 +1671,38 @@ function renderMissing(missing, laundry = []) {
 function fillSelect(sel, list, placeholder) {
   sel.innerHTML = `<option value="">${placeholder}</option>` + list.map(x => `<option value="${x.key}">${x.label}</option>`).join('');
 }
-/* ---- Colour picker: curated shades plus any custom colour ---- */
-function renderColourGrid() {
-  const sel = $('#fColor').value;
-  $('#colourGrid').innerHTML = COLOR_GROUPS.map(([name, ids]) => `<div class="cg"><div class="cg-title">${name}</div><div class="cg-row">${ids.map(id => {
+/* ---- Colour picker: a bottom sheet of large named swatches (one tap to choose) ---- */
+function renderColourSheet() {
+  const sel = $('#fColor').value, custom = HEX_RE.test(sel);
+  $('#sheetBody').innerHTML = COLOR_GROUPS.map(([name, ids]) => `<h3 class="cg-title">${name}</h3><div class="tiles">${ids.map(id => {
     const c = COLOR_MAP[id];
-    return `<button type="button" class="sw" data-colour="${id}" title="${c.label}" aria-label="${c.label}" aria-pressed="${sel === id}" style="background:${c.hex}"></button>`;
-  }).join('')}</div></div>`).join('') + `<div class="cg"><div class="cg-title">Something else</div><div class="cg-row">
-    <label class="sw sw-custom" id="swCustom" title="Pick any colour" aria-label="Pick a custom colour">+<input type="color" id="fColorCustom" class="hidden-input" value="#808080"></label></div></div>`;
-  $('#fColorCustom').addEventListener('input', (e) => setColour(e.target.value));
-  updateColorPreview();
+    return `<button type="button" class="tile" data-colour="${id}" aria-pressed="${sel === id}" aria-label="${c.label}"><span class="sw" style="background:${c.hex}"></span><span class="tn">${c.label}</span></button>`;
+  }).join('')}</div>`).join('') + `<h3 class="cg-title">Something else</h3><div class="tiles">
+    <label class="tile" aria-label="Pick any colour"><span class="sw sw-custom${custom ? ' chosen' : ''}" style="${custom ? 'background:' + sel : ''}">+</span><span class="tn">Any colour</span>
+    <input type="color" id="fColorCustom" class="hidden-input" value="${custom ? sel : '#808080'}"></label></div>`;
 }
-function setColour(key) {
+function openColourSheet() {
+  renderColourSheet();
+  $('#colourSheet').classList.remove('hidden'); document.body.classList.add('sheet-open');
+  const sel = $('#sheetBody .tile[aria-pressed="true"]'); if (sel) sel.scrollIntoView({ block: 'center' });
+}
+function closeColourSheet() {
+  const sh = $('#colourSheet'); if (!sh || sh.classList.contains('hidden')) return;
+  sh.classList.add('hidden'); document.body.classList.remove('sheet-open');
+}
+function setColour(key, keepOpen) {
   const el = $('#fColor');
   el.value = key;
   if (key) setFieldError(el, '');
-  $$('#colourGrid .sw[data-colour]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.colour === key)));
-  const custom = HEX_RE.test(key);
-  const sw = $('#swCustom'); if (sw) { sw.style.background = custom ? key : ''; sw.classList.toggle('chosen', custom); sw.setAttribute('aria-pressed', String(custom)); }
   updateColorPreview();
+  if (!keepOpen) closeColourSheet();
 }
+/* Shows the chosen colour on the form's colour button. */
 function updateColorPreview() {
-  const k = $('#fColor').value;
-  $('#fColorName').textContent = k ? '· ' + colorOf(k).label + (HEX_RE.test(k) ? ' (custom)' : '') : '';
+  const k = $('#fColor').value, name = $('#trigName'), sw = $('#trigSwatch');
+  if (!k) { sw.style.background = 'transparent'; name.textContent = 'Choose a colour'; name.classList.add('placeholder'); return; }
+  const c = colorOf(k);
+  sw.style.background = c.hex; name.textContent = c.label + (HEX_RE.test(k) ? ' (custom)' : ''); name.classList.remove('placeholder');
 }
 function setFieldError(input, msg) {
   input.setAttribute('aria-invalid', msg ? 'true' : 'false');
@@ -1646,7 +1735,7 @@ function addItemFromForm(e) {
   ];
   errs.forEach(([el, msg]) => setFieldError(el, msg));
   const firstBad = errs.find(([, msg]) => msg);
-  if (firstBad) { firstBad[0].focus(); return; }
+  if (firstBad) { (firstBad[0].type === 'hidden' ? $('#btnColour') : firstBad[0]).focus(); return; }
 
   const item = sanitizeItem({ id: uid('itm'), name, type: typeEl.value, color: colorEl.value, createdAt: nowIso(),
     washAfter: washEl.value === 'never' ? null : Number(washEl.value), wearsSinceWash: 0 });
@@ -1837,9 +1926,8 @@ function showBanner(msg) { const b = $('#storageBanner'); b.textContent = msg; b
 
 /* Two primary sections (My Closet, Decide) plus My Data from the header. */
 function switchTab(name) {
-  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-  if (name === 'data') $('#btnMyData').setAttribute('aria-current', 'page');
-  else $('#btnMyData').removeAttribute('aria-current');
+  closeColourSheet();
+  $$('nav.tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
   $$('main section[role=tabpanel]').forEach(sec => sec.classList.toggle('hidden', sec.id !== 'tab-' + name));
   if (name === 'wardrobe') renderWardrobe();
   if (name === 'data') renderData();
@@ -2072,16 +2160,22 @@ function init() {
   if (!Store.available) showBanner('Browser storage is unavailable (private mode?). Your data will be lost when you close this page.');
   loadState();
   fillSelect($('#fType'), TYPES, 'Choose a type…');
-  renderColourGrid();
-  $('#colourGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-colour]'); if (b) setColour(b.dataset.colour); });
+  updateColorPreview();
+  $('#btnColour').onclick = openColourSheet;
+  $('#colourSheet').addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) return closeColourSheet();
+    const b = e.target.closest('[data-colour]'); if (b) setColour(b.dataset.colour);
+  });
+  $('#sheetBody').addEventListener('input', (e) => { if (e.target.id === 'fColorCustom') setColour(e.target.value, true); });
+  $('#sheetBody').addEventListener('change', (e) => { if (e.target.id === 'fColorCustom') closeColourSheet(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeColourSheet(); });
   fillWashSelect($('#fWash'));
   $('#fType').addEventListener('change', suggestWash);
   $('#fWash').addEventListener('change', (e) => { e.target.dataset.touched = '1'; if (e.target.value) setFieldError(e.target, ''); });
   $('#btnDismissLaundry').onclick = () => { const m = Store.read(KEYS.meta, {}) || {}; Store.write(KEYS.meta, { ...m, showLaundryNotice: false }); renderWardrobe(); };
 
-  $$('nav.tabs button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
-  $('#btnMyData').onclick = () => switchTab('data');
-  $('#btnGenerate').onclick = () => generate(false);
+  $$('nav.tabbar button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+  $('#btnGenerate').onclick = () => { generate(false); scrollToOutfit(); };
   $('#addForm').addEventListener('submit', addItemFromForm);
   // Clear a field's validation message as soon as the user fixes it.
   ['#fName', '#fType'].forEach(s => $(s).addEventListener(s === '#fName' ? 'input' : 'change', (e) => {
