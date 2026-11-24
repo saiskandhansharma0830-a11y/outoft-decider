@@ -1,0 +1,2111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Pick a well-coordinated outfit from the clothes you own.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Outfit">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Outfit Decider v0</title>
+<style>
+/* =====================================================================
+   Design tokens: white, calm, restrained colour
+   ===================================================================== */
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --fill: #f5f5f7;          /* soft neutral fill */
+  --fill-2: #ebebef;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #86868b;
+  --border: #e5e5ea;
+  --accent: #0071e3;        /* used sparingly: primary action, focus */
+  --accent-text: #ffffff;
+  --good: #1f7a3a;
+  --bad: #c4321f;
+  --warn: #9a6a00;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", Roboto, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 8px 16px calc(32px + env(safe-area-inset-bottom)); }
+
+/* =====================================================================
+   Header and primary navigation (two sections)
+   ===================================================================== */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255,255,255,.92);
+  -webkit-backdrop-filter: saturate(180%) blur(16px); backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding-top: env(safe-area-inset-top);
+}
+.topbar-inner { max-width: 640px; margin: 0 auto; padding: 10px 16px 12px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
+.brand h1 { font-size: 1.0625rem; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+.brand h1 span { color: var(--faint); font-weight: 400; }
+.link-btn { background: none; border: 0; color: var(--accent); font-weight: 500; font-size: .9375rem; padding: 8px 4px; cursor: pointer; min-height: 40px; }
+.link-btn[aria-current="page"] { color: var(--text); }
+nav.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--fill); border-radius: 10px; padding: 2px; margin-top: 8px; }
+nav.tabs button {
+  border: 0; background: transparent; border-radius: 8px; padding: 8px 10px; min-height: 40px;
+  font-size: .9375rem; font-weight: 500; color: var(--text); cursor: pointer;
+}
+nav.tabs button[aria-selected="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 0 0 .5px rgba(0,0,0,.04); font-weight: 600; }
+
+/* =====================================================================
+   Generic components
+   ===================================================================== */
+.page-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -.02em; margin: 20px 0 4px; }
+.page-sub { color: var(--muted); margin: 0 0 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 1.0625rem; font-weight: 600; margin: 0 0 14px; letter-spacing: -.01em; }
+.card h3 { font-size: .9375rem; font-weight: 600; margin: 18px 0 8px; }
+.label { font-size: .8125rem; font-weight: 500; color: var(--muted); margin: 0 0 8px; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grow { flex: 1; min-width: 0; }
+.btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  padding: 11px 18px; border-radius: var(--radius-sm); font-weight: 500; cursor: pointer; min-height: 46px;
+  transition: background-color .15s ease;
+}
+.btn:hover { background: var(--fill); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.primary:hover { background: #0077ed; }
+.btn.good[aria-pressed="true"] { background: var(--good); border-color: var(--good); color: #fff; }
+.btn.bad[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.danger { color: var(--bad); }
+.btn.sm { padding: 6px 12px; min-height: 36px; font-size: .875rem; border-radius: 10px; }
+.btn.block { width: 100%; }
+label.field { display: block; margin-bottom: 14px; }
+label.field > span { display: block; font-size: .8125rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+input[type=text], select {
+  width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); min-height: 46px; font-size: 1rem; /* 16px avoids iOS zoom */
+}
+select { appearance: none; -webkit-appearance: none; padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button {
+  border: 1px solid var(--border); background: var(--surface); padding: 7px 14px; border-radius: 999px;
+  cursor: pointer; font-size: .9375rem; min-height: 40px;
+}
+.seg button[aria-pressed="true"] { background: var(--text); color: #fff; border-color: var(--text); }
+.chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--fill); font-size: .8125rem; color: var(--muted); white-space: nowrap; }
+.swatch { display: inline-block; width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); vertical-align: middle; flex: none; }
+.empty { text-align: center; padding: 28px 8px; color: var(--muted); }
+.empty b { color: var(--text); }
+.banner { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--fill); margin-bottom: 16px; font-size: .9375rem; color: var(--text); }
+.banner.warn { background: #fff8e6; }
+.hidden { display: none !important; }
+
+/* =====================================================================
+   Decide: outfit card
+   ===================================================================== */
+.score-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.verdict { font-weight: 600; font-size: 1.0625rem; }
+.palette { display: flex; height: 6px; border-radius: 999px; overflow: hidden; margin-bottom: 16px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+.palette div { flex: 1; }
+.outfit { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 18px; }
+@media (min-width: 560px) { .outfit { grid-template-columns: 1fr 1fr; } }
+.piece { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); background: var(--fill); min-width: 0; }
+.piece .blob { width: 44px; height: 44px; border-radius: 10px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); }
+.piece .role { font-size: .75rem; color: var(--muted); font-weight: 500; }
+.piece .name { font-weight: 600; overflow-wrap: anywhere; }
+.piece .desc { font-size: .8125rem; color: var(--muted); }
+.why { margin: 0 0 14px; padding-left: 20px; }
+.why li { margin-bottom: 6px; }
+.why li.neg { color: var(--muted); }
+.actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.fb-status { margin: 10px 0 0; font-size: .875rem; color: var(--muted); }
+details.breakdown { margin-bottom: 16px; }
+details.breakdown summary { cursor: pointer; color: var(--accent); font-size: .875rem; padding: 4px 0; }
+details.breakdown table { width: 100%; border-collapse: collapse; font-size: .875rem; margin-top: 8px; }
+details.breakdown td { padding: 5px 0; border-bottom: 1px solid var(--border); }
+details.breakdown td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 8px; }
+
+/* =====================================================================
+   My Closet
+   ===================================================================== */
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.items li:last-child { border-bottom: 0; }
+.items .meta { font-size: .8125rem; color: var(--muted); }
+.items .item-name { font-weight: 500; overflow-wrap: anywhere; }
+.swatch.lg { width: 30px; height: 30px; align-self: flex-start; margin-top: 2px; }
+.items li.closet-row { align-items: flex-start; }
+.badge { display: inline-block; font-size: .75rem; font-weight: 600; color: var(--warn); background: #fff4d6; border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+.colour-name { color: var(--text); font-weight: 600; }
+.colour-grid { display: grid; gap: 14px; margin-top: 6px; }
+.cg-title { font-size: .75rem; color: var(--muted); margin-bottom: 6px; }
+.cg-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { width: 44px; height: 44px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.sw[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+.sw-custom { display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.25rem; text-shadow: 0 0 3px rgba(0,0,0,.6);
+  background: conic-gradient(#e0453a, #f0d24a, #5cc46a, #3ac0d0, #3a63e0, #c13ad0, #e0453a); }
+.sw-custom.chosen { text-shadow: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+input.hidden-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.item-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.item-controls .limit { font-size: .8125rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.item-controls select { width: auto; min-height: 36px; padding: 4px 28px 4px 10px; font-size: .875rem; }
+.wear-row { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+.btn.danger.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+.color-select { position: relative; }
+.color-select .swatch { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.color-select select { padding-left: 40px; }
+.field-error { display: block; margin-top: 6px; color: var(--bad); font-size: .8125rem; }
+.field-error:empty { display: none; }
+[aria-invalid="true"] { border-color: var(--bad) !important; }
+
+/* =====================================================================
+   Recent outfits and data
+   ===================================================================== */
+.hist { list-style: none; margin: 0; padding: 0; }
+.hist li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+.hist li:last-child { border-bottom: 0; }
+.hist .dots { display: flex; gap: 3px; flex: none; }
+.hist .dots .swatch { width: 14px; height: 14px; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat { background: var(--fill); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+.stat b { display: block; font-size: 1.375rem; font-weight: 600; }
+.stat span { font-size: .75rem; color: var(--muted); }
+
+/* =====================================================================
+   Toast
+   ===================================================================== */
+#toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: rgba(29,29,31,.92); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: .9375rem;
+  z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; max-width: calc(100% - 32px); text-align: center;
+}
+#toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>Outfit Decider <span>v0</span></h1>
+      <button class="link-btn" id="btnMyData" type="button">My Data</button>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Main sections">
+      <button role="tab" data-tab="wardrobe" aria-selected="false" aria-controls="tab-wardrobe">My Closet</button>
+      <button role="tab" data-tab="today" aria-selected="true" aria-controls="tab-today">Decide</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="storageBanner" class="banner warn hidden" role="alert"></div>
+  <div id="updateBanner" class="banner hidden" role="status">A new version is ready. <button class="link-btn" id="btnUpdate" type="button" style="min-height:0;padding:0">Update now</button></div>
+
+  <!-- ============ DECIDE ============ -->
+  <section id="tab-today" role="tabpanel">
+    <h2 class="page-title">Decide</h2>
+    <p class="page-sub">Tell me about today and I'll pick the strongest outfit from your closet.</p>
+    <div class="banner hidden" id="backupNudge"><span id="backupNudgeText"></span> <button class="link-btn" id="btnNudgeBackup" type="button" style="min-height:0;padding:0">Back up now</button></div>
+    <div class="card">
+      <p class="label">Weather</p>
+      <div class="seg" id="weatherSeg" style="margin-bottom:18px"></div>
+      <p class="label">Occasion</p>
+      <div class="seg" id="occasionSeg" style="margin-bottom:20px"></div>
+      <button class="btn primary block" id="btnGenerate">Decide my outfit</button>
+    </div>
+    <div id="outfitArea"></div>
+    <div class="card hidden" id="recentCard">
+      <h2>Recent outfits</h2>
+      <ul class="hist" id="historyList"></ul>
+    </div>
+  </section>
+
+  <!-- ============ MY CLOSET ============ -->
+  <section id="tab-wardrobe" role="tabpanel" class="hidden">
+    <h2 class="page-title">My Closet</h2>
+    <p class="page-sub" id="closetCount">Add the clothes you own.</p>
+    <div class="card hidden" id="importCard">
+      <h2>Already using Outfit Decider?</h2>
+      <p class="small muted">If you used the older HTML file, bring your closet and feedback with you. In the old copy go to My Data and tap Download backup, then choose that file here.</p>
+      <label class="btn primary" style="display:inline-flex;align-items:center">Import a backup<input type="file" class="import-file hidden" accept="application/json,.json"></label>
+    </div>
+    <div class="card">
+      <h2>Add an item</h2>
+      <form id="addForm" novalidate autocomplete="off">
+        <label class="field"><span>Item name</span>
+          <input type="text" id="fName" maxlength="60" placeholder="e.g. Plain white tee" aria-describedby="fNameErr" aria-invalid="false">
+          <small class="field-error" id="fNameErr" role="alert"></small>
+        </label>
+        <div class="grid2">
+          <label class="field"><span>Item type</span>
+            <select id="fType" aria-describedby="fTypeErr" aria-invalid="false"></select>
+            <small class="field-error" id="fTypeErr" role="alert"></small>
+          </label>
+          <label class="field"><span>Wears before wash</span>
+            <select id="fWash" aria-describedby="fWashErr" aria-invalid="false"></select>
+            <small class="field-error" id="fWashErr" role="alert"></small>
+          </label>
+        </div>
+        <div class="field"><span>Colour <b id="fColorName" class="colour-name"></b></span>
+          <input type="hidden" id="fColor" value="" aria-describedby="fColorErr" aria-invalid="false">
+          <div id="colourGrid" class="colour-grid" role="group" aria-label="Colour"></div>
+          <small class="field-error" id="fColorErr" role="alert"></small>
+        </div>
+        <button type="submit" class="btn primary block">Add item</button>
+      </form>
+    </div>
+    <div class="banner hidden" id="laundryNotice">I gave your existing clothes a suggested "wears before wash" (T-shirt 1, Shirt 2, Pants 4, Jeans 5, Hoodie 6, Shoes not tracked). Change any of them below. <button class="link-btn" id="btnDismissLaundry" type="button" style="min-height:0;padding:0">Got it</button></div>
+    <div class="card">
+      <div id="wardrobeList"></div>
+    </div>
+  </section>
+
+  <!-- ============ MY DATA (secondary, from the header) ============ -->
+  <section id="tab-data" role="tabpanel" class="hidden">
+    <h2 class="page-title">My Data</h2>
+    <p class="page-sub">Your feedback dataset, exports and storage.</p>
+    <div class="card">
+      <h2>Feedback Data</h2>
+      <div class="stat-grid" id="fbStats"></div>
+      <p class="small muted">Every Good/Bad tap is saved as a separate event with snapshots of the garments, the scores and the colour analysis. Changing your mind adds a new event instead of overwriting the old one. Ratings don't change today's recommendations, and this app does not train an AI model.</p>
+      <div class="row">
+        <button class="btn primary" id="btnExportJsonl">Export JSONL</button>
+        <button class="btn" id="btnExportCsv">Export CSV</button>
+      </div>
+    </div>
+    <div class="card hidden" id="installCard">
+      <h2>Install on your phone</h2>
+      <p class="small muted" id="installText"></p>
+      <button class="btn primary hidden" id="btnInstall" type="button">Install app</button>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <p class="small muted">Your data is stored only on this device. A full backup contains your closet, recent outfits and all feedback. Importing one replaces the current data (a safety copy is kept first).</p>
+      <p class="small" id="backupStatus" style="margin:0 0 14px"></p>
+      <div class="row">
+        <button class="btn hidden" id="btnShareBackup" type="button">Share backup</button>
+        <button class="btn" id="btnExportAll">Download backup</button>
+        <label class="btn" style="display:inline-flex;align-items:center">Import backup<input type="file" id="importFile" class="import-file hidden" accept="application/json,.json"></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Storage</h2>
+      <div id="storageInfo" class="small muted" style="margin-bottom:14px"></div>
+      <div class="row">
+        <button class="btn danger" id="btnClearHistory">Clear recent outfits</button>
+        <button class="btn danger" id="btnClearFeedback">Delete feedback</button>
+        <button class="btn danger" id="btnClearAll">Reset everything</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Outfit Decider v0
+   Deterministic, rule-based outfit recommender. No AI model is used:
+   feedback is stored as structured data for a future system.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Constants & reference data
+   --------------------------------------------------------------------- */
+const SCHEMA_VERSION = 4;
+const ENGINE_VERSION = 'rules-5.0';
+const KEYS = {
+  meta: 'outfitDecider.meta',
+  wardrobe: 'outfitDecider.wardrobe',
+  history: 'outfitDecider.history',
+  feedback: 'outfitDecider.feedback',
+  prefs: 'outfitDecider.prefs',
+  wears: 'outfitDecider.wears',      // append-only log of wear / wash events
+};
+const HISTORY_LIMIT = 5;   // recent generated outfits kept (feedback keeps its own snapshots)
+
+/* Outfit roles used by the engine. */
+const ROLES = [
+  { key: 'top', label: 'Top' },
+  { key: 'bottom', label: 'Bottom' },
+  { key: 'shoes', label: 'Shoes' },
+  { key: 'hoodie', label: 'Hoodie' },
+];
+/* The fixed item types the user can choose. Each type carries derived
+   traits the engine uses: its outfit role, formality (0 casual – 2 smart)
+   and warmth (0 light – 2 heavy). The user only ever picks the type. */
+const TYPES = [
+  { key: 'tshirt', label: 'T-shirt', role: 'top', formality: 0, warmth: 0 },
+  { key: 'shirt', label: 'Shirt', role: 'top', formality: 2, warmth: 1 },
+  { key: 'hoodie', label: 'Hoodie', role: 'hoodie', formality: 0, warmth: 2 },
+  { key: 'pants', label: 'Pants', role: 'bottom', formality: 1.5, warmth: 1 },
+  { key: 'jeans', label: 'Jeans', role: 'bottom', formality: 0.5, warmth: 1 },
+  { key: 'shoes', label: 'Shoes', role: 'shoes', formality: null, warmth: 1 },
+];
+const TYPE_MAP = Object.fromEntries(TYPES.map(t => [t.key, t]));
+/* Laundry: how many wears before an item needs washing. The user sets this per item;
+   these are only the suggestions pre-filled when a type is chosen (null = never tracked). */
+const WASH_SUGGESTION = { tshirt: 1, shirt: 2, pants: 4, jeans: 5, hoodie: 6, shoes: null };
+const WASH_MAX = 30;
+const WEATHER = [
+  { key: 'hot', label: 'Hot' },
+  { key: 'warm', label: 'Warm' },
+  { key: 'mild', label: 'Mild' },
+  { key: 'cool', label: 'Cool' },
+  { key: 'cold', label: 'Cold' },
+];
+const OCCASIONS = [
+  { key: 'casual', label: 'Casual', target: 0 },
+  { key: 'smart-casual', label: 'Smart casual', target: 1 },
+  { key: 'smart', label: 'Smart', target: 2 },
+  { key: 'active', label: 'Active / errands', target: 0 },
+];
+
+/* Colour metadata.
+   Garments are only labelled with a general colour name, so every value
+   here is a fashion-oriented approximation of a *typical* garment in that
+   colour, not a measurement of any specific item.
+
+   hue        Position on the artist's (RYB) colour wheel in degrees, the
+              wheel stylists use: red 0, orange 60, yellow 120, green 180,
+              blue 240, purple 300. null = achromatic (no hue).
+   temp       'warm' | 'cool' | 'neutral'
+   lightness  0 (black) – 1 (white), typical garment depth
+   saturation 0 (grey) – 1 (pure colour), typical garment vividness
+   neutrality 0 – 1: how much the colour behaves like a neutral that pairs
+              with almost anything (1 = true neutral; navy, brown and denim
+              are "honorary" neutrals, as in menswear convention)
+   role       'foundation' | 'versatile' | 'muted' | 'soft' | 'accent'
+   family     Colour family used to detect tonal / repeated colours        */
+const COLORS = [
+  { key: 'white',      label: 'White',      hex: '#f7f7f5', family: 'white',  hue: null, temp: 'neutral', lightness: 0.97, saturation: 0.00, neutrality: 1.00, role: 'foundation' },
+  { key: 'black',      label: 'Black',      hex: '#141414', family: 'black',  hue: null, temp: 'neutral', lightness: 0.07, saturation: 0.00, neutrality: 1.00, role: 'foundation' },
+  { key: 'grey',       label: 'Grey',       hex: '#8c8f93', family: 'grey',   hue: null, temp: 'neutral', lightness: 0.55, saturation: 0.03, neutrality: 1.00, role: 'foundation' },
+  { key: 'beige',      label: 'Beige',      hex: '#d6c2a1', family: 'beige',  hue: 85,   temp: 'warm',    lightness: 0.76, saturation: 0.30, neutrality: 0.90, role: 'foundation' },
+  { key: 'cream',      label: 'Cream',      hex: '#efe6d0', family: 'beige',  hue: 100,  temp: 'warm',    lightness: 0.91, saturation: 0.30, neutrality: 0.90, role: 'foundation' },
+  { key: 'navy',       label: 'Navy',       hex: '#1d2a47', family: 'blue',   hue: 245,  temp: 'cool',    lightness: 0.18, saturation: 0.45, neutrality: 0.80, role: 'versatile' },
+  { key: 'brown',      label: 'Brown',      hex: '#5e3d24', family: 'brown',  hue: 45,   temp: 'warm',    lightness: 0.28, saturation: 0.40, neutrality: 0.75, role: 'versatile' },
+  { key: 'denim',      label: 'Denim',      hex: '#4a6a94', family: 'blue',   hue: 235,  temp: 'cool',    lightness: 0.45, saturation: 0.35, neutrality: 0.75, role: 'versatile' },
+  { key: 'olive',      label: 'Olive',      hex: '#5f6135', family: 'green',  hue: 140,  temp: 'warm',    lightness: 0.32, saturation: 0.35, neutrality: 0.45, role: 'muted' },
+  { key: 'burgundy',   label: 'Burgundy',   hex: '#6e1f2c', family: 'red',    hue: 350,  temp: 'warm',    lightness: 0.27, saturation: 0.50, neutrality: 0.35, role: 'muted' },
+  { key: 'light-blue', label: 'Light blue', hex: '#a9c9ea', family: 'blue',   hue: 235,  temp: 'cool',    lightness: 0.80, saturation: 0.45, neutrality: 0.35, role: 'soft' },
+  { key: 'pink',       label: 'Pink',       hex: '#efa6b9', family: 'red',    hue: 345,  temp: 'cool',    lightness: 0.80, saturation: 0.55, neutrality: 0.15, role: 'soft' },
+  { key: 'green',      label: 'Green',      hex: '#2f8a55', family: 'green',  hue: 185,  temp: 'cool',    lightness: 0.40, saturation: 0.55, neutrality: 0.05, role: 'accent' },
+  { key: 'blue',       label: 'Blue',       hex: '#2f6fd0', family: 'blue',   hue: 240,  temp: 'cool',    lightness: 0.48, saturation: 0.65, neutrality: 0.05, role: 'accent' },
+  { key: 'purple',     label: 'Purple',     hex: '#6a3fa0', family: 'purple', hue: 290,  temp: 'cool',    lightness: 0.38, saturation: 0.55, neutrality: 0.00, role: 'accent' },
+  { key: 'red',        label: 'Red',        hex: '#c73a2e', family: 'red',    hue: 0,    temp: 'warm',    lightness: 0.46, saturation: 0.70, neutrality: 0.00, role: 'accent' },
+  { key: 'orange',     label: 'Orange',     hex: '#e8822a', family: 'orange', hue: 60,   temp: 'warm',    lightness: 0.55, saturation: 0.75, neutrality: 0.00, role: 'accent' },
+  { key: 'yellow',     label: 'Yellow',     hex: '#f0d24a', family: 'yellow', hue: 120,  temp: 'warm',    lightness: 0.65, saturation: 0.80, neutrality: 0.00, role: 'accent' },
+];
+const ROLE_TEXT = {
+  foundation: 'a versatile foundation colour',
+  versatile: 'a highly versatile, near-neutral colour',
+  muted: 'a muted colour that supports others',
+  soft: 'a soft, light colour',
+  accent: 'a strong accent colour',
+};
+
+
+/* ---------------------------------------------------------------------
+   2. Small utilities
+   --------------------------------------------------------------------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const uid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const round1 = (n) => Math.round(n * 10) / 10;
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nowIso = () => new Date().toISOString();
+const labelOf = (list, key) => (list.find(x => x.key === key) || {}).label || String(key);
+
+function toast(msg, ms = 2400) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* Visual intensity: how much a colour "shouts". Vivid colours at mid
+   lightness are loudest; very dark or very light shades read quieter. */
+const intensityOf = (c) => round2(c.saturation * (1 - 1.1 * Math.abs(c.lightness - 0.5)));
+const round2 = (n) => Math.round(n * 100) / 100;
+/* ---------------------------------------------------------------------
+   Colour derivation: turn any hex colour into the attributes the engine uses.
+   The 18 original colours keep their hand-authored values (so existing clothes
+   score exactly as before); every other preset and every custom colour is derived
+   here from perceptual (OKLab/OKLCH) values.
+   --------------------------------------------------------------------- */
+function hexToOklab(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const r = lin((n >> 16) & 255), g = lin((n >> 8) & 255), b = lin(n & 255);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+  const a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+  const bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+  const C = Math.hypot(a, bb);
+  let h = Math.atan2(bb, a) * 180 / Math.PI; if (h < 0) h += 360;
+  return { L, a, b: bb, C, h };
+}
+const colourDistance = (p, q) => Math.hypot(p.L - q.L, p.a - q.a, p.b - q.b);
+
+/* OKLCH hue → the painter's red-yellow-blue wheel the engine reasons about. */
+const RYB_ANCHORS = [[25, 355], [29, 0], [55, 40], [70, 60], [105, 120], [130, 150], [150, 180], [195, 215], [250, 240], [285, 270], [310, 300], [350, 340], [385, 355]];
+function hueToRyb(h) {
+  const x = h < 25 ? h + 360 : h;
+  for (let i = 0; i < RYB_ANCHORS.length - 1; i++) {
+    const [a1, r1] = RYB_ANCHORS[i], [a2, r2] = RYB_ANCHORS[i + 1];
+    if (x >= a1 && x <= a2) { const v = r1 + (r2 - r1) * (x - a1) / (a2 - a1); return Math.round(((v % 360) + 360) % 360); }
+  }
+  return Math.round(h);
+}
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+/* Returns { family, hue, temp, lightness, saturation, neutrality, role } for a hex colour. */
+function deriveAttrs(hex) {
+  const k = hexToOklab(hex);
+  const lightness = round2(Math.pow(Math.max(k.L, 0), 1.4));                 // matches the engine's lightness scale
+  const saturation = round2(clamp01(Math.pow(k.C / 0.24, 0.8)));
+  const achromatic = k.C < 0.03;
+  const ryb = achromatic ? null : hueToRyb(k.h);
+  // Neutrality: how freely the colour pairs with others. Navy, brown, denim and beige are "honorary" neutrals.
+  let neutrality;
+  if (achromatic) neutrality = 1;
+  else if (k.h >= 60 && k.h <= 110 && k.L > 0.72 && k.C < 0.075) neutrality = 0.9;           // beige / cream / stone
+  else if (k.h >= 45 && k.h <= 95 && k.L >= 0.55 && k.L <= 0.78 && k.C < 0.115) neutrality = 0.7;                // tan / camel / taupe
+  else if (k.h >= 235 && k.h <= 290 && k.L < 0.34) neutrality = 0.8;                         // navy / midnight
+  else if (k.h >= 25 && k.h <= 85 && k.L < 0.52 && k.C < 0.12) neutrality = 0.75;           // brown / chocolate
+  else if (k.h >= 235 && k.h <= 275 && k.L >= 0.34 && k.L <= 0.66 && k.C < 0.10) neutrality = 0.75; // denim
+  else neutrality = round2(clamp01(0.7 - k.C * 5));
+  const temp = achromatic ? 'neutral' : (k.h >= 10 && k.h <= 118 ? 'warm' : 'cool');
+  let family;
+  if (achromatic) family = k.L < 0.25 ? 'black' : k.L > 0.9 ? 'white' : 'grey';
+  else if (k.h >= 60 && k.h <= 110 && k.L > 0.65 && k.C < 0.075) family = 'beige';
+  else if (k.h >= 45 && k.h <= 95 && k.L >= 0.55 && k.L <= 0.78 && k.C < 0.115) family = 'beige';
+  else if (k.h >= 25 && k.h <= 85 && k.L < 0.62 && k.C < 0.12) family = 'brown';
+  else {
+    const r = ryb;
+    family = (r >= 330 || r < 30) ? 'red' : r < 90 ? 'orange' : r < 120 ? 'yellow' : r < 215 ? 'green' : r < 275 ? 'blue' : 'purple';
+  }
+  const intensity = saturation * (1 - 1.1 * Math.abs(lightness - 0.5));
+  let role;
+  if (neutrality >= 0.9) role = 'foundation';
+  else if (neutrality >= 0.7) role = 'versatile';
+  else if (lightness >= 0.7 && intensity < 0.45) role = 'soft';
+  else if (neutrality >= 0.3 || intensity < 0.35 || (lightness < 0.32 && intensity < 0.5)) role = 'muted';
+  else role = 'accent';
+  return { family, hue: ryb, temp, lightness, saturation, neutrality, role };
+}
+
+/* More curated shades. Their attributes are derived from the hex; the 18 original colours above keep
+   their hand-authored values. */
+const NEW_PRESETS = [
+  ['light-grey', 'Light grey', '#c9cbcd'], ['charcoal', 'Charcoal', '#3a3f44'], ['stone', 'Stone', '#b7ad9e'], ['taupe', 'Taupe', '#8b7d6b'],
+  ['tan', 'Tan', '#b88a56'], ['camel', 'Camel', '#c19a6b'], ['khaki', 'Khaki', '#b3a578'], ['light-brown', 'Light brown', '#8b5e3c'], ['chocolate', 'Chocolate', '#3e2a1e'],
+  ['sky-blue', 'Sky blue', '#8fc1e8'], ['royal-blue', 'Royal blue', '#2a4fb0'], ['teal', 'Teal', '#1d7c7c'],
+  ['light-denim', 'Light denim', '#8eadcf'], ['dark-denim', 'Dark denim', '#2c4568'],
+  ['mint', 'Mint', '#b8e0c8'], ['sage', 'Sage', '#9fae8a'], ['forest', 'Forest green', '#24503a'],
+  ['blush', 'Blush', '#f3d3d3'], ['hot-pink', 'Hot pink', '#e0457b'], ['coral', 'Coral', '#f0765f'], ['terracotta', 'Terracotta', '#b5573a'], ['rust', 'Rust', '#a2482a'],
+  ['peach', 'Peach', '#f5c6a5'], ['pale-yellow', 'Pale yellow', '#f5e8a3'], ['mustard', 'Mustard', '#c99a1d'],
+  ['lavender', 'Lavender', '#c5b4e3'], ['plum', 'Plum', '#5a2a55'],
+];
+NEW_PRESETS.forEach(([key, label, hex]) => COLORS.push({ key, label, hex, ...deriveAttrs(hex) }));
+/* Picker layout: lightest to darkest within each family. */
+const COLOR_GROUPS = [
+  ['Whites & greys', ['white', 'cream', 'light-grey', 'grey', 'charcoal', 'black']],
+  ['Beiges & browns', ['beige', 'stone', 'taupe', 'tan', 'camel', 'khaki', 'light-brown', 'brown', 'chocolate']],
+  ['Blues', ['light-blue', 'sky-blue', 'blue', 'royal-blue', 'teal', 'light-denim', 'denim', 'dark-denim', 'navy']],
+  ['Greens', ['mint', 'sage', 'olive', 'green', 'forest']],
+  ['Reds & pinks', ['blush', 'pink', 'hot-pink', 'coral', 'red', 'terracotta', 'rust', 'burgundy']],
+  ['Oranges & yellows', ['pale-yellow', 'peach', 'yellow', 'orange', 'mustard']],
+  ['Purples', ['lavender', 'purple', 'plum']],
+];
+const DENIM_KEYS = ['denim', 'dark-denim', 'light-denim'];
+/* Adds the derived fields the engine needs to a colour record. */
+function finishColour(c) {
+  const ok = hexToOklab(c.hex);
+  return { ...c, intensity: intensityOf(c), ok,
+    isBlack: c.key === 'black' || (ok.L < 0.28 && ok.C < 0.03),
+    isDenim: DENIM_KEYS.includes(c.key) || (ok.C >= 0.03 && ok.h >= 235 && ok.h <= 275 && ok.L >= 0.35 && ok.L <= 0.66 && ok.C < 0.10) };
+}
+const COLOR_MAP = Object.fromEntries(COLORS.map(c => [c.key, finishColour(c)]));
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+const isValidColour = (k) => typeof k === 'string' && (!!COLOR_MAP[k] || HEX_RE.test(k));
+const normaliseColour = (k) => HEX_RE.test(k) ? k.toLowerCase() : k;
+const CUSTOM_COLOURS = new Map();
+/* A colour is either a preset id ("sage") or a custom hex ("#7a8b6c"). Custom colours are named after the nearest preset. */
+function colorOf(key) {
+  if (COLOR_MAP[key]) return COLOR_MAP[key];
+  if (typeof key === 'string' && HEX_RE.test(key)) {
+    const hex = key.toLowerCase();
+    if (!CUSTOM_COLOURS.has(hex)) {
+      const ok = hexToOklab(hex), attrs = deriveAttrs(hex);
+      // Name it after the nearest preset in the same colour family (falls back to any family).
+      const all = Object.values(COLOR_MAP), pool = all.filter(c => c.family === attrs.family);
+      const near = (pool.length ? pool : all).reduce((best, c) => { const d = colourDistance(ok, c.ok); return d < best.d ? { c, d } : best; }, { c: COLOR_MAP.grey, d: 9 }).c;
+      CUSTOM_COLOURS.set(hex, finishColour({ key: hex, label: near.label, hex, custom: true, ...attrs }));
+    }
+    return CUSTOM_COLOURS.get(hex);
+  }
+  return COLOR_MAP.grey;
+}
+
+/* ---------------------------------------------------------------------
+   3. Storage layer (localStorage with safe fallback + schema versioning)
+   --------------------------------------------------------------------- */
+const Store = (() => {
+  let available = true;
+  const memory = {};
+  try {
+    const k = '__od_probe__';
+    localStorage.setItem(k, '1');
+    localStorage.removeItem(k);
+  } catch (e) {
+    available = false;
+  }
+
+  function read(key, fallback) {
+    try {
+      const raw = available ? localStorage.getItem(key) : memory[key];
+      if (raw == null) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      // Keep the unreadable raw text under a backup key so nothing is silently lost.
+      console.error('Failed to read', key, e);
+      try {
+        const raw = available ? localStorage.getItem(key) : memory[key];
+        const backupKey = key + '.unreadable.' + Date.now();
+        if (available) localStorage.setItem(backupKey, raw); else memory[backupKey] = raw;
+        // Moved (not deleted): only remove the original once the backup copy exists.
+        if (available) localStorage.removeItem(key); else delete memory[key];
+        showBanner(`Some saved data (${key}) could not be read. The original text was kept under "${backupKey}" in browser storage.`);
+      } catch (e2) { console.error(e2); }
+      return fallback;
+    }
+  }
+  function write(key, value) {
+    const raw = JSON.stringify(value);
+    try {
+      if (available) localStorage.setItem(key, raw); else memory[key] = raw;
+      return true;
+    } catch (e) {
+      console.error('Failed to write', key, e);
+      const full = e && (e.name === 'QuotaExceededError' || e.code === 22);
+      toast(full ? 'Storage is full, so this was not saved. Export your data from My Data, then clear recent outfits to free space.' : 'Could not save data.', 4000);
+      return false;
+    }
+  }
+  function remove(key) {
+    try { if (available) localStorage.removeItem(key); else delete memory[key]; } catch (e) { console.error(e); }
+  }
+  function bytesUsed() {
+    if (!available) return 0;
+    let total = 0;
+    Object.values(KEYS).forEach(k => { const v = localStorage.getItem(k); if (v) total += v.length * 2; });
+    return total;
+  }
+  return { read, write, remove, bytesUsed, get available() { return available; } };
+})();
+
+/* Migrations: each function upgrades data from version N to N+1.
+   Add new entries here when the schema changes. */
+const MIGRATIONS = {
+  // v1 → v2: items move from {category, color, pattern, formality, warmth, available}
+  // to the simpler {type, color}. History and feedback snapshots are left untouched
+  // (each record carries its own schemaVersion).
+  1: (s) => {
+    const colorMap = { charcoal: 'grey', 'light-grey': 'grey', 'dark-denim': 'denim', 'light-denim': 'denim', tan: 'brown',
+      khaki: 'beige', sage: 'olive', forest: 'green', teal: 'blue', lavender: 'purple', rust: 'orange', mustard: 'yellow' };
+    s.wardrobe = (Array.isArray(s.wardrobe) ? s.wardrobe : []).filter(i => i && typeof i === 'object').map(i => {
+      let type = i.type;
+      if (!type) {
+        if (i.category === 'top') type = Number(i.formality) >= 1 ? 'shirt' : 'tshirt';
+        else if (i.category === 'bottom') type = String(i.color).includes('denim') ? 'jeans' : 'pants';
+        else type = i.category;
+      }
+      return { id: i.id, name: i.name, type, color: colorMap[i.color] || i.color, createdAt: i.createdAt };
+    });
+    return s;
+  },
+  // v2 → v3: each feedback record becomes an immutable feedback event.
+  // Older records are converted with every original field preserved.
+  2: (s) => {
+    s.feedback = (Array.isArray(s.feedback) ? s.feedback : []).map(f => {
+      if (!f || typeof f !== 'object' || f.eventId) return f;
+      const sc = f.score || {}, hd = f.hoodieDecision || null, o = f.outfit || {};
+      return {
+        recordType: 'outfit_feedback', legacy: true,
+        schemaVersion: f.schemaVersion || 2, engineVersion: f.engineVersion || 'unknown',
+        eventId: f.id || uid('fbk'), outfitId: f.outfitId || null,
+        timestamp: f.updatedAt || f.createdAt || nowIso(), label: f.rating,
+        supersedesEventId: null,
+        context: f.context || {},
+        outfit: { hoodieIncluded: !!o.hoodie, top: o.top || null, hoodie: o.hoodie || null, bottom: o.bottom || null, shoes: o.shoes || null },
+        recommendation: {
+          overallScore: sc.total ?? null, tier: sc.tier ?? null, colourScore: sc.colour ?? null, breakdown: sc.breakdown || null,
+          hoodie: hd ? { included: !!hd.added, improvedOutfit: !!hd.added, scoreDelta: hd.delta ?? null, note: hd.note || null } : null,
+        },
+        legacyReasons: f.reasons || [], legacyNote: f.note || '',
+      };
+    });
+    return s;
+  },
+  // v3 → v4: laundry tracking. Items gain a wash limit (type suggestion) and a wear counter.
+  3: (s) => {
+    s.wardrobe = (Array.isArray(s.wardrobe) ? s.wardrobe : []).map(i => (i && typeof i === 'object') ? {
+      ...i,
+      washAfter: i.washAfter !== undefined ? i.washAfter : (WASH_SUGGESTION[i.type] ?? null),
+      wearsSinceWash: i.wearsSinceWash || 0, lastWornAt: i.lastWornAt || null, lastWashedAt: i.lastWashedAt || null,
+    } : i);
+    s.wears = Array.isArray(s.wears) ? s.wears : [];
+    s.laundryDefaultsApplied = true;
+    return s;
+  },
+};
+function migrateData(data, fromVersion) {
+  let v = fromVersion;
+  while (v < SCHEMA_VERSION) { if (MIGRATIONS[v]) data = MIGRATIONS[v](data); v++; }
+  return data;
+}
+
+function runMigrations() {
+  const meta = Store.read(KEYS.meta, null);
+  if (!meta) {
+    Store.write(KEYS.meta, { schemaVersion: SCHEMA_VERSION, createdAt: nowIso() });
+    return;
+  }
+  let v = Number(meta.schemaVersion) || 1;
+  if (v > SCHEMA_VERSION) {
+    showBanner('This data was saved by a newer version of Outfit Decider. Some features may not work as expected.');
+    return;
+  }
+  if (v < SCHEMA_VERSION) {
+    const data = { wardrobe: Store.read(KEYS.wardrobe, []), history: Store.read(KEYS.history, []), feedback: Store.read(KEYS.feedback, []), wears: Store.read(KEYS.wears, []) };
+    const next = migrateData(data, v);
+    Store.write(KEYS.wardrobe, next.wardrobe);
+    Store.write(KEYS.history, next.history);
+    Store.write(KEYS.feedback, next.feedback);
+    Store.write(KEYS.wears, next.wears || []);
+    if (next.laundryDefaultsApplied && next.wardrobe.length) meta.showLaundryNotice = true;
+  }
+  Store.write(KEYS.meta, { ...meta, schemaVersion: SCHEMA_VERSION, migratedAt: nowIso() });
+}
+
+/* ---------------------------------------------------------------------
+   4. App state
+   --------------------------------------------------------------------- */
+const state = {
+  wardrobe: [],
+  history: [],
+  feedback: [],
+  wears: [],       // append-only wear / wash events
+  prefs: { weather: 'mild', occasion: 'casual' },
+  session: null,   // { contextKey, ranked:[], shownKeys:Set, cursor, current }
+};
+
+/* Stored item shape (schema v2): { id, name, type, color, createdAt }. */
+function sanitizeItem(raw) {
+  if (!raw || typeof raw !== 'object' || !TYPE_MAP[raw.type]) return null;
+  const name = String(raw.name || '').trim().slice(0, 60);
+  if (!name) return null;
+  return {
+    id: typeof raw.id === 'string' && raw.id ? raw.id : uid('itm'),
+    name,
+    type: raw.type,
+    color: isValidColour(raw.color) ? normaliseColour(raw.color) : 'grey',
+    createdAt: raw.createdAt || nowIso(),
+    // Laundry: wears allowed before a wash (null = not tracked) and wears since the last wash.
+    washAfter: sanitizeWashAfter(raw.washAfter, raw.type),
+    wearsSinceWash: Math.max(0, parseInt(raw.wearsSinceWash, 10) || 0),
+    lastWornAt: raw.lastWornAt || null,
+    lastWashedAt: raw.lastWashedAt || null,
+  };
+}
+function sanitizeWashAfter(v, type) {
+  if (v === undefined) return WASH_SUGGESTION[type] ?? null;
+  if (v === null) return null;
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n >= 1 && n <= WASH_MAX ? n : (WASH_SUGGESTION[type] ?? null);
+}
+/* An item needs washing once it has been worn as many times as its limit allows. */
+const isDirty = (i) => i.washAfter != null && i.wearsSinceWash >= i.washAfter;
+const activeWardrobe = () => state.wardrobe.filter(i => !isDirty(i));
+const dirtyItems = () => state.wardrobe.filter(isDirty);
+/* Engine view of an item: stored fields plus traits derived from its type. */
+function withTraits(item) {
+  const t = TYPE_MAP[item.type];
+  return { ...item, category: t.role, typeLabel: t.label, formality: t.formality, warmth: t.warmth };
+}
+const typeLabel = (key) => (TYPE_MAP[key] || {}).label || key;
+
+function loadState() {
+  runMigrations();
+  const w = Store.read(KEYS.wardrobe, []);
+  state.wardrobe = Array.isArray(w) ? w.map(sanitizeItem).filter(Boolean) : [];
+  const h = Store.read(KEYS.history, []);
+  state.history = Array.isArray(h) ? h : [];
+  const f = Store.read(KEYS.feedback, []);
+  if (Array.isArray(f)) state.feedback = f;
+  else {
+    // Unexpected shape: keep the original under a backup key rather than discarding it.
+    // Move it aside only if the backup copy was written successfully.
+    if (Store.write(KEYS.feedback + '.unexpected.' + Date.now(), f)) Store.remove(KEYS.feedback);
+    showBanner('Saved feedback had an unexpected format. It was kept as a backup in browser storage and a new feedback list was started.');
+    state.feedback = [];
+  }
+  const w2 = Store.read(KEYS.wears, []);
+  state.wears = Array.isArray(w2) ? w2 : [];
+  const p = Store.read(KEYS.prefs, null);
+  if (p && typeof p === 'object') state.prefs = { ...state.prefs, ...p };
+}
+const saveWardrobe = () => Store.write(KEYS.wardrobe, state.wardrobe);
+const saveHistory = () => Store.write(KEYS.history, state.history.slice(-HISTORY_LIMIT));
+const saveFeedback = () => Store.write(KEYS.feedback, state.feedback);
+const savePrefs = () => Store.write(KEYS.prefs, state.prefs);
+const saveWears = () => Store.write(KEYS.wears, state.wears);
+
+/* ---------------------------------------------------------------------
+   5. Recommendation engine (deterministic rules, no AI model)
+   --------------------------------------------------------------------- */
+
+/* =====================================================================
+   5a. Colour-theory engine
+   ---------------------------------------------------------------------
+   Two layers:
+   1. colourRelation(a, b): how two colours relate (neutral pairing,
+      tonal, analogous, complementary, triadic, discordant), adjusted for
+      saturation, lightness and temperature. Returns a score in -1..1.
+   2. analyseColours(outfit): evaluates the COMPLETE visible outfit
+      (hoodie, top, bottom, shoes) with six weighted components that add
+      up to a 0–100 colour score, plus hard-clash detection.
+   ===================================================================== */
+const LOUD = 0.45;                                  // intensity at which a colour grabs attention
+const isLoud = (c) => c.intensity >= LOUD;
+const lc = (c) => c.label.toLowerCase();
+const wheelDistance = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+const sameFamily = (a, b) => a.family === b.family;
+
+/* Pair relation seen through a "neutral" lens: one colour is a base. */
+function neutralPairScore(a, b, dL) {
+  const [n, o] = a.neutrality >= b.neutrality ? [a, b] : [b, a];
+  const hueGap = a.hue != null && b.hue != null ? wheelDistance(a.hue, b.hue) : 0;
+  const involvesBlack = a.isBlack || b.isBlack;
+  // Two very dark colours of similar depth (navy + black) read as a near-miss rather than a choice.
+  if (a.lightness < 0.3 && b.lightness < 0.3 && dL < 0.15 && (involvesBlack || hueGap < 30)) {
+    return { score: 0, relation: 'dark-on-dark', text: `${lc(a)} and ${lc(b)} are both very dark, so together they can look like a near-miss` };
+  }
+  const contrast = Math.min(1, dL / 0.5);
+  if (o.neutrality >= 0.75) {
+    // Both behave as neutrals.
+    if (hueGap >= 120) return { score: 0.9, relation: 'neutral', text: `${lc(a)} and ${lc(b)} pair warm against cool, a classic combination of versatile colours` };
+    if (dL < 0.12) return { score: 0.45, relation: 'neutral', text: `${lc(a)} and ${lc(b)} are similar in depth, so they blend into one soft tone` };
+    return {
+      score: 0.65 + 0.3 * contrast, relation: 'neutral',
+      text: dL >= 0.4 ? `${lc(a)} and ${lc(b)} are a classic high-contrast neutral pairing` : `${lc(a)} and ${lc(b)} make a calm, versatile neutral pairing`,
+    };
+  }
+  let score = 0.65 + 0.3 * contrast;
+  let text = `${lc(n)} is a versatile base that lets the ${lc(o)} stand out`;
+  if (n.temp !== 'neutral' && n.temp === o.temp) { score += 0.05; text = `${lc(n)} grounds the ${lc(o)}, and both share a ${n.temp} temperature`; }
+  return { score: Math.min(1, score), relation: 'neutral', text };
+}
+
+/* Pair relation seen through a colour-wheel lens. */
+function chromaticPairScore(a, b, dL) {
+  if (a.hue == null || b.hue == null) return { score: 0.7, relation: 'neutral', text: '' };
+  const d = wheelDistance(a.hue, b.hue);
+  const quieter = Math.min(a.intensity, b.intensity);
+  const A = lc(a), B = lc(b);
+  let score, relation, text;
+  if (d <= 15) {                                     // same hue: monochromatic / tonal
+    relation = 'tonal';
+    if (dL >= 0.25) { score = 0.8; text = `${A} and ${B} are a tonal pairing: one colour family in two depths`; }
+    else if (dL >= 0.12) { score = 0.45; text = `${A} and ${B} are tonal, though close in depth`; }
+    else { score = -0.2; relation = 'flat'; text = `${A} and ${B} are too close in shade, so the look feels flat`; }
+  } else if (d <= 70) {                              // analogous (neighbours on the wheel)
+    relation = 'analogous';
+    score = 0.8 - Math.max(0, quieter - 0.35) * 1.2 - (d > 45 ? 0.1 : 0) - (d > 60 ? 0.1 : 0);
+    text = `${A} and ${B} sit side by side on the colour wheel, a naturally harmonious analogous pairing`;
+  } else if (d < 105) {                              // awkward gap between neighbours and triad
+    relation = 'discordant';
+    score = -0.25 - quieter * 1.3;
+    text = `${A} and ${B} sit an awkward distance apart on the colour wheel and tend to clash`;
+  } else if (d < 150) {                              // triadic / split
+    relation = 'triadic';
+    score = 0.35 - quieter * 1.4;
+    text = quieter >= LOUD ? `${A} and ${B} are both strong and compete for attention` : `${A} and ${B} form a triadic contrast, kept in check by the softer tone`;
+  } else {                                           // complementary
+    relation = 'complementary';
+    if (quieter < 0.32 || dL >= 0.35) {
+      score = 0.65;
+      text = `${A} and ${B} are complementary, and the ${a.intensity <= b.intensity ? A : B} is soft enough to balance the contrast`;
+    } else {
+      score = -0.55 - (quieter - 0.32) * 1.5;
+      text = `${A} and ${B} are complementary but both intense, so they vibrate against each other`;
+    }
+  }
+  // Soft pastels of similar lightness harmonise through shared value even across the wheel.
+  if (a.lightness >= 0.7 && b.lightness >= 0.7 && !isLoud(a) && !isLoud(b) && score < 0.5) {
+    score = 0.5; relation = 'pastel'; text = `${A} and ${B} are soft pastels of the same lightness, so they sit together gently`;
+  }
+  // Temperature: warm + cool needs a reason (complementary logic or clear light/dark contrast).
+  if (relation !== 'complementary' && a.temp !== 'neutral' && b.temp !== 'neutral' && a.temp !== b.temp) {
+    if (dL >= 0.4) text += '; the warm/cool contrast reads as intentional thanks to the light/dark difference';
+    else score -= 0.15;
+  }
+  return { score: clamp(score, -1, 1), relation, text };
+}
+
+/* How two colours relate. Blends the neutral and colour-wheel views by how
+   neutral the more neutral colour is. Returns { score: -1..1, relation, text }. */
+function colourRelation(aKey, bKey) {
+  const a = colorOf(aKey), b = colorOf(bKey);
+  const dL = Math.abs(a.lightness - b.lightness);
+  if (aKey === bKey || colourDistance(a.ok, b.ok) < 0.04) {     // same colour, or an indistinguishable shade
+    if (a.isBlack) return { score: 0.5, relation: 'tonal', text: 'black on black is a deliberate, sleek look' };
+    if (a.isDenim && b.isDenim) return { score: -0.35, relation: 'flat', text: 'denim on denim in a similar wash can look unintentional' };
+    if (a.neutrality >= 0.9) return { score: 0.3, relation: 'tonal', text: `${lc(a)} on ${lc(a)} is clean but a little flat` };
+    return { score: isLoud(a) ? -0.6 : -0.3, relation: 'flat', text: `two ${lc(a)} pieces in the same shade look excessively repetitive` };
+  }
+  const N = Math.max(a.neutrality, b.neutrality);
+  const nv = neutralPairScore(a, b, dL);
+  const cv = chromaticPairScore(a, b, dL);
+  const score = N * nv.score + (1 - N) * cv.score;
+  const pick = N >= 0.5 || !cv.text ? nv : cv;
+  return { score: round2(clamp(score, -1, 1)), relation: pick.relation, text: pick.text };
+}
+
+/* Visible pieces with their approximate share of the outfit's visual area.
+   A hoodie covers most of the top, leaving only the neckline/hem visible. */
+function visiblePieces(o) {
+  const list = o.hoodie
+    ? [['hoodie', o.hoodie, 0.40], ['top', o.top, 0.12]]
+    : [['top', o.top, 0.50]];
+  list.push(['bottom', o.bottom, 0.38]);
+  if (o.shoes) list.push(['shoes', o.shoes, 0.10]);
+  const sum = list.reduce((s, x) => s + x[2], 0);
+  return list.map(([role, item, a]) => ({ role, item, c: colorOf(item.color), area: a / sum }));
+}
+
+const COLOUR_WEIGHTS = { harmony: 35, saturation: 20, contrast: 15, temperature: 10, shoes: 10, balance: 10 };
+const TIERS = [
+  { key: 'excellent', label: 'Excellent', min: 85, color: 'var(--good)' },
+  { key: 'good', label: 'Good', min: 74, color: 'var(--good)' },
+  { key: 'acceptable', label: 'Acceptable', min: 62, color: 'var(--warn)' },
+  { key: 'weak', label: 'Weak', min: 45, color: 'var(--bad)' },
+  { key: 'clash', label: 'Clashing', min: -Infinity, color: 'var(--bad)' },
+];
+const tierFor = (score) => TIERS.find(t => score >= t.min);
+const listColours = (P) => {
+  const n = [...new Set(P.map(p => lc(p.c)))];
+  return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n[0];
+};
+const pieceName = (p) => `${lc(p.c)} ${p.item.typeLabel.toLowerCase()}`;
+
+/* Evaluate the complete outfit's colours.
+   Returns { score 0–100, tier, components, notes:[{text, impact}], clash: string|null }. */
+function analyseColours(o) {
+  const P = visiblePieces(o);
+  const notes = [];
+  const note = (text, impact) => { if (text) notes.push({ text: cap(text), impact }); };
+  let clash = null;
+  const upper = P[0];                                 // hoodie if worn, else top
+  const bottom = P.find(p => p.role === 'bottom');
+  const shoes = P.find(p => p.role === 'shoes');
+
+  // 1. Harmony: every visible pair, weighted by how much of the outfit both occupy.
+  let wSum = 0, sSum = 0;
+  const pairs = [];
+  for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+    const rel = colourRelation(P[i].item.color, P[j].item.color);
+    const w = P[i].area * P[j].area;
+    wSum += w; sSum += w * rel.score;
+    pairs.push({ a: P[i], b: P[j], rel, w });
+    if (rel.score <= -0.6 && !clash) clash = `${pieceName(P[i])} and ${pieceName(P[j])} clash: ${rel.text}`;
+  }
+  const harmony = sSum / wSum;
+  const main = pairs.find(p => p.a === upper && p.b === bottom);
+  // Only a better-than-average main pairing counts as a strength.
+  note(main.rel.text, (main.rel.score - 0.5) * 10);
+  for (const p of pairs) {
+    if (p === main || p.b === shoes) continue;
+    if (p.rel.score < -0.15) note(p.rel.text, p.rel.score * 6);
+  }
+
+  // 2. Saturation balance: prefer one focal colour supported by quieter pieces.
+  const loudKeys = [...new Set(P.filter(p => isLoud(p.c)).map(p => p.item.color))];
+  let saturation;
+  if (loudKeys.length === 0) {
+    saturation = 0.75;
+    const allNeutral = P.every(p => p.c.neutrality >= 0.75);
+    const names = listColours(P);
+    note(allNeutral ? `${names} form an understated all-neutral palette` : `no colour shouts: ${names} stay quiet and coordinated`, 1.5);
+  } else if (loudKeys.length === 1) {
+    const loudPieces = P.filter(p => p.item.color === loudKeys[0]);
+    const loudArea = loudPieces.reduce((s, p) => s + p.area, 0);
+    const supported = P.filter(p => p.item.color !== loudKeys[0]).every(p => p.c.neutrality >= 0.6 || p.c.intensity < 0.35);
+    saturation = (supported ? 1 : 0.6) - (loudArea > 0.6 ? 0.3 : 0);
+    note(`the ${pieceName(loudPieces[0])} is the single focal point${supported ? ', supported by quieter pieces' : ''}`, supported ? 4 : 2);
+  } else {
+    const related = loudKeys.every((k, i) => loudKeys.slice(i + 1).every(k2 => colourRelation(k, k2).score >= 0.45));
+    const ln = loudKeys.map(k => lc(colorOf(k)));
+    const names = ln.length > 1 ? ln.slice(0, -1).join(', ') + ' and ' + ln[ln.length - 1] : ln[0];
+    if (related) { saturation = 0; note(`${names} are related but both strong, so they share the spotlight`, -2); }
+    else { saturation = -1; clash = clash || `${names} are competing loud colours`; note(`${names} are both loud and compete for attention`, -8); }
+  }
+
+  // 3. Contrast between the main upper layer and the bottom.
+  const dL = Math.abs(upper.c.lightness - bottom.c.lightness);
+  const hueGap = upper.c.hue != null && bottom.c.hue != null ? wheelDistance(upper.c.hue, bottom.c.hue) : 0;
+  let contrast;
+  if (dL > 0.8) { contrast = 0.8; note('stark light/dark contrast gives a crisp, classic look', 2); }
+  else if (dL >= 0.25) { contrast = 1; note(`clear light/dark contrast between the ${pieceName(upper)} and ${pieceName(bottom)} gives the outfit structure`, 3); }
+  else if (dL >= 0.12) contrast = 0.45;
+  else if (upper.c.isBlack && bottom.c.isBlack) contrast = 0.3;
+  else if (hueGap >= 90) contrast = 0.3;
+  else { contrast = -0.4; note(`the ${pieceName(upper)} and ${pieceName(bottom)} are almost the same depth, so the outfit can look flat`, -3); }
+
+  // 4. Temperature: warm and cool colours must be bridged or intentionally contrasted.
+  const tempPieces = P.filter(p => p.c.neutrality < 0.6 && p.c.temp !== 'neutral');
+  const temps = new Set(tempPieces.map(p => p.c.temp));
+  let temperature;
+  if (temps.size <= 1) {
+    temperature = tempPieces.length ? 1 : 0.8;
+    if (tempPieces.length > 1) note(`the ${[...temps][0]} colours keep the palette cohesive`, 1.5);
+  } else {
+    const warm = tempPieces.filter(p => p.c.temp === 'warm'), cool = tempPieces.filter(p => p.c.temp === 'cool');
+    const intentional = warm.some(w => cool.some(c => {
+      const r = colourRelation(w.item.color, c.item.color);
+      return (r.relation === 'complementary' && r.score > 0.4) || Math.abs(w.c.lightness - c.c.lightness) >= 0.4;
+    }));
+    const bridge = P.find(p => p.c.neutrality >= 0.75);
+    const W = lc(warm[0].c), C = lc(cool[0].c);
+    if (intentional) { temperature = 0.7; note(`warm ${W} and cool ${C} contrast in a deliberate way`, 1.5); }
+    else if (bridge) { temperature = 0.4; note(`warm ${W} and cool ${C} are bridged by the ${lc(bridge.c)}`, 0.5); }
+    else { temperature = -0.6; note(`warm ${W} and cool ${C} feel visually disconnected`, -4); }
+  }
+
+  // 5. Shoes: do they finish the outfit?
+  let shoeScore;
+  if (!shoes) shoeScore = 0.3;
+  else {
+    const toBottom = colourRelation(shoes.item.color, bottom.item.color).score;
+    const toUpper = colourRelation(shoes.item.color, upper.item.color).score;
+    const h = 0.6 * toBottom + 0.4 * toUpper;
+    const echo = P.find(p => p !== shoes && (colourDistance(p.c.ok, shoes.c.ok) < 0.04 || (sameFamily(p.c, shoes.c) && p.c.neutrality < 0.9)));
+    if (shoes.c.neutrality >= 0.75) {
+      shoeScore = 0.5 + 0.5 * h + (echo ? 0.25 : 0);
+      if (echo) note(`the ${lc(shoes.c)} shoes echo the ${pieceName(echo)}, tying the outfit together`, 2.5);
+      else if (h >= 0.7) note(`${lc(shoes.c)} shoes are a clean, versatile finish`, 1);
+    } else if (echo) {
+      shoeScore = Math.max(h, 0.8);
+      note(`the ${lc(shoes.c)} shoes repeat the ${pieceName(echo)}, a deliberate accent`, 2);
+    } else {
+      shoeScore = h - (isLoud(shoes.c) ? 0.4 : 0);
+      if (isLoud(shoes.c)) note(`the ${lc(shoes.c)} shoes pull attention away from the rest of the outfit`, -3);
+    }
+    shoeScore = clamp(shoeScore, -1, 1);
+  }
+
+  // 6. Visual balance: how many separate colour families are in play.
+  const families = new Set(P.filter(p => p.c.neutrality < 0.6).map(p => p.c.family));
+  const k = families.size;
+  const balance = [0.5, 1, 0.6, -0.3][k] ?? -1;
+  if (k >= 3) note(`${k} different colour families make the outfit busy`, -4);
+
+  const values = { harmony, saturation, contrast, temperature, shoes: shoeScore, balance };
+  const components = {};
+  let score = 0;
+  for (const [key, max] of Object.entries(COLOUR_WEIGHTS)) {
+    // Map -0.25..1 onto 0..max: a merely neutral component earns little, a negative one nothing.
+    const pts = max * clamp((values[key] + 0.25) / 1.25, 0, 1);
+    components[key] = { value: round2(values[key]), pts: round1(pts), max };
+    score += pts;
+  }
+  score = round1(score);
+  const tier = clash ? TIERS[TIERS.length - 1] : tierFor(score);
+  if (!clash && tier.key === 'clash') {
+    // Too weak overall: name the biggest problem rather than a generic reason.
+    const worst = notes.filter(n => n.impact < 0).sort((a, b) => a.impact - b.impact)[0];
+    clash = worst ? `${worst.text.charAt(0).toLowerCase() + worst.text.slice(1)}, and the outfit has nothing strong enough to balance it` : 'the colours do not work together as a whole';
+  }
+  // Structured details recorded with feedback for future analysis.
+  const byTemp = (t) => [...new Set(P.filter(p => p.c.temp === t).map(p => p.item.color))];
+  const details = {
+    relationships: pairs.map(x => ({ pieces: [x.a.role, x.b.role], colours: [x.a.item.color, x.b.item.color], relation: x.rel.relation, score: x.rel.score, weight: round2(x.w) })),
+    loudColours: loudKeys,
+    focalColour: loudKeys.length === 1 ? loudKeys[0] : null,
+    saturationVerdict: loudKeys.length === 0 ? 'calm' : loudKeys.length === 1 ? 'single-focal-point' : saturation === 0 ? 'related-strong-colours' : 'competing-loud-colours',
+    temperatures: { warm: byTemp('warm'), cool: byTemp('cool'), neutral: byTemp('neutral') },
+    temperatureVerdict: temps.size <= 1 ? 'consistent' : temperature >= 0.7 ? 'intentional-contrast' : temperature >= 0.4 ? 'bridged-by-neutral' : 'disconnected',
+    upperBottomLightnessGap: round2(dL),
+  };
+  return { score, tier, components, notes, clash, details };
+}
+
+/* =====================================================================
+   5b. Context and ranking
+   ===================================================================== */
+
+/* Non-colour adjustments, in points on the same 0–100 scale.
+   Good/Bad feedback deliberately does NOT feed back into scoring: it is
+   collected as a raw dataset for a future personalised system. */
+function contextAdjustments(o, ctx, prefModel) {
+  const adj = { formality: 0, weather: 0 };
+  const notes = [];
+  const add = (k, pts, text) => { adj[k] += pts; if (text) notes.push({ text: cap(text), impact: pts / 2 }); };
+  const pieces = [o.top, o.bottom, o.shoes, o.hoodie].filter(Boolean);
+
+  // Formality (derived from item type; shoes are not typed by formality).
+  const occ = OCCASIONS.find(x => x.key === ctx.occasion) || OCCASIONS[0];
+  const forms = pieces.filter(p => p.formality != null).map(p => p.formality);
+  const avgF = forms.reduce((a, b) => a + b, 0) / forms.length;
+  const gap = Math.abs(avgF - occ.target);
+  const over = avgF > occ.target;
+  if (gap < 0.5) add('formality', 2, `a ${o.top.typeLabel.toLowerCase()} with ${o.bottom.typeLabel.toLowerCase()} suits a ${occ.label.toLowerCase()} day`);
+  else add('formality', -(over ? 6 : 12) * gap, gap >= 1 ? `a bit ${over ? 'dressy' : 'casual'} for ${occ.label.toLowerCase()}` : null);
+  if (Math.max(...forms) - Math.min(...forms) >= 2) add('formality', -3, null);
+
+  // Weather (warmth derived from item type).
+  const w = ctx.weather;
+  if (!o.hoodie && o.top.warmth === 0 && (w === 'cold' || w === 'cool')) add('weather', w === 'cold' ? -12 : -6, `a T-shirt on its own is light for ${w} weather`);
+  if (o.top.warmth === 0 && w === 'hot') add('weather', 1, 'a T-shirt keeps you cool in the heat');
+  if (o.hoodie) add('weather', { hot: -30, warm: -15, mild: -2, cool: 3, cold: 4 }[w] ?? 0, null);
+  else if (w === 'cold') add('weather', -8, null);
+
+  return { adj: mapValues(adj, round1), notes };
+}
+
+/* Score a complete outfit: colour analysis (0–100) + context adjustments. */
+function scoreOutfit(o, ctx, prefModel) {
+  const colour = analyseColours(o);
+  const context = contextAdjustments(o, ctx, prefModel);
+  // rankScore orders outfits; the displayed total is the same value kept within 0–100.
+  const rankScore = round1(colour.score + context.adj.formality + context.adj.weather);
+  const total = clamp(rankScore, 0, 100);
+  const breakdown = { colour: colour.score };
+  for (const [k, v] of Object.entries(colour.components)) breakdown[k] = v.pts;
+  Object.assign(breakdown, context.adj);
+  return {
+    total,
+    rankScore,
+    colour: colour.score,
+    colourTier: colour.tier.key,
+    // "Clashing" is reserved for colour clashes (which are rejected); a poor fit for
+    // the weather or occasion is labelled Weak at worst.
+    tier: colour.clash ? TIERS[TIERS.length - 1] : tierFor(Math.max(total, TIERS[3].min)),
+    rejected: !!colour.clash,
+    clash: colour.clash,
+    components: colour.components,
+    colourDetails: colour.details,
+    context: context.adj,
+    breakdown,
+    reasons: colour.notes.concat(context.notes).map(n => ({ text: n.text, weight: n.impact })),
+  };
+}
+const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const mapValues = (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v)]));
+
+/* Decide whether a hoodie improves a base outfit by scoring the complete
+   outfit with and without each hoodie. Returns null if no acceptable version exists. */
+const HOODIE_MIN_GAIN = 1.5;       // overall points a hoodie must add to be worth layering
+const HOODIE_MAX_COLOUR_LOSS = 3;  // a hoodie may never noticeably weaken the colour harmony
+/* The hoodie is an optional layer of the SAME outfit. Score the complete
+   outfit without a hoodie and with each available hoodie, then keep the
+   stronger version. Returns null if no acceptable version exists. */
+function decideHoodie(base, hoodies, ctx, prefModel) {
+  const baseScore = scoreOutfit(base, ctx, prefModel);
+  const topDesc = `${lc(colorOf(base.top.color))} ${base.top.typeLabel.toLowerCase()}`;
+  const bottomDesc = `${lc(colorOf(base.bottom.color))} ${base.bottom.typeLabel.toLowerCase()}`;
+  const blocked = ctx.weather === 'hot' ? "No hoodie: it's hot, so the extra layer isn't needed."
+    : ctx.occasion === 'smart' ? 'No hoodie: a hoodie would make a smart outfit look too casual.' : null;
+  if (!hoodies.length || blocked) {
+    if (baseScore.rejected) return null;
+    const note = hoodies.length ? blocked
+      : (ctx.weather === 'cold' || ctx.weather === 'cool') ? "No hoodie: there isn't one in your closet, so consider another warm layer." : null;
+    return { outfit: base, score: baseScore, decision: { considered: hoodies.length, added: false, delta: null, note } };
+  }
+
+  const options = hoodies.map(h => ({ hoodie: h, score: scoreOutfit({ ...base, hoodie: h }, ctx, prefModel) }));
+  const valid = options
+    .filter(x => !x.score.rejected && (baseScore.rejected || x.score.colour >= baseScore.colour - HOODIE_MAX_COLOUR_LOSS))
+    .sort((a, b) => (b.score.rankScore - a.score.rankScore) || a.hoodie.id.localeCompare(b.hoodie.id));
+  const best = valid[0] || null;
+  if (baseScore.rejected && !best) return null;
+  const delta = best && !baseScore.rejected ? round1(best.score.rankScore - baseScore.rankScore) : null;
+  const evaluated = {
+    considered: hoodies.length,
+    withoutHoodie: baseScore.rejected ? null : { total: baseScore.total, colour: baseScore.colour },
+    options: options.map(x => ({ hoodieId: x.hoodie.id, total: x.score.total, colour: x.score.colour, rejected: x.score.rejected })),
+  };
+
+  if (best && (baseScore.rejected || delta > HOODIE_MIN_GAIN)) {
+    const colourGain = round1(best.score.colour - baseScore.colour);
+    const why = [];
+    if (colourGain >= 2) why.push(`it lifts the colour harmony from ${Math.round(baseScore.colour)} to ${Math.round(best.score.colour)}`);
+    if (colourRelation(best.hoodie.color, base.top.color).score >= 0.6) why.push(`it sits well over the ${topDesc}`);
+    if (colourRelation(best.hoodie.color, base.bottom.color).score >= 0.6) why.push(`it pairs well with the ${bottomDesc}`);
+    if (ctx.weather === 'cold' || ctx.weather === 'cool') why.push(`it adds warmth for ${ctx.weather} weather`);
+    return { outfit: { ...base, hoodie: best.hoodie }, score: best.score,
+      decision: { ...evaluated, added: true, hoodieId: best.hoodie.id, delta, colourGain,
+        note: `${best.hoodie.name} added: ${why.length ? why.join('; ') : 'the complete outfit is stronger with this layer'}.` } };
+  }
+
+  let note;
+  if (!valid.length) {
+    note = options.every(x => x.score.rejected)
+      ? `No hoodie: each of your hoodies would clash with the ${topDesc} and ${bottomDesc}.`
+      : 'No hoodie: each of your hoodies would weaken the colour balance of this outfit.';
+  } else if (ctx.weather === 'warm') note = "No hoodie: it's warm, so the outfit works better without a layer.";
+  else if (Math.abs(delta) <= HOODIE_MIN_GAIN) note = `No hoodie: the ${best.hoodie.name} works about as well either way, so the simpler outfit wins.`;
+  else note = `No hoodie: the outfit is stronger without a layer than with the ${best.hoodie.name}.`;
+  return { outfit: base, score: baseScore, decision: { ...evaluated, added: false, bestHoodieId: best ? best.hoodie.id : null, delta, note } };
+}
+
+/* Rank every acceptable outfit for a context. Clashing outfits are rejected. */
+function rankOutfits(ctx) {
+  // Laundry: items that need washing are never candidates (hard exclusion).
+  const all = activeWardrobe().map(withTraits);
+  const by = (c) => all.filter(i => i.category === c);
+  const tops = by('top'), bottoms = by('bottom'), shoes = by('shoes'), hoodies = by('hoodie');
+  // A complete outfit needs exactly one top, one bottom and one pair of shoes.
+  const missing = [!tops.length && 'top', !bottoms.length && 'bottom', !shoes.length && 'shoes'].filter(Boolean);
+  if (missing.length) {
+    // Tell apart "you own none" from "they are all in the wash".
+    const inWash = dirtyItems().map(withTraits).filter(i => missing.includes(i.category));
+    return { ranked: [], missing, laundry: inWash };
+  }
+
+  const prefModel = null; // feedback is not used for scoring in this version
+  const ranked = [];
+  let rejected = 0;
+  const clashes = {};
+  for (const t of tops) for (const b of bottoms) for (const s of shoes) {
+    const base = { top: t, bottom: b, shoes: s, hoodie: null };
+    const r = decideHoodie(base, hoodies, ctx, prefModel);
+    if (!r) {
+      rejected++;
+      const c = scoreOutfit(base, ctx, prefModel).clash;
+      if (c) clashes[c] = (clashes[c] || 0) + 1;
+      continue;
+    }
+    ranked.push({ key: outfitKey(r.outfit), ...r });
+  }
+  // Deterministic sort: score desc, then stable by key for ties.
+  ranked.sort((a, b) => (b.score.rankScore - a.score.rankScore) || a.key.localeCompare(b.key));
+  const topClashes = Object.entries(clashes).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
+  return { ranked, rejected, topClashes };
+}
+const outfitKey = (o) => ['top', 'bottom', 'shoes', 'hoodie'].map(r => o[r] ? o[r].id : '-').join('/');
+
+/* Choose the next outfit from the ranked list, favouring variety:
+   first pass skips any top+bottom pair already shown this session. */
+/* Rerolls stay within this many points of the best outfit (and never below
+   Acceptable when an Acceptable-or-better outfit exists). */
+const REROLL_WINDOW = 15;
+function eligibleCandidates(ranked) {
+  const best = ranked[0].score.total;
+  const acceptable = TIERS[2].min;
+  const floor = best >= acceptable ? Math.max(acceptable, best - REROLL_WINDOW) : TIERS[3].min;
+  return ranked.filter(r => r.score.total >= floor);
+}
+
+/* Pick the next outfit. A fresh decision shows the strongest outfit; a reroll
+   moves to the strongest remaining candidate, preferring a new top + bottom,
+   then any unseen variation, and only then starts a new cycle. */
+function nextFromSession(isReroll) {
+  const s = state.session;
+  if (!isReroll) { s.shown.add(s.ranked[0].key); return { pick: s.ranked[0], level: 'best' }; }
+  const pool = s.eligible;
+  const current = s.current ? s.current.rec.key : null;
+  if (pool.length <= 1) return { pick: null, level: 'only-one' };
+  // Compare what is actually visible: a hoodie hides most of the top.
+  const upperOf = (r) => (r.outfit.hoodie || r.outfit.top).id;
+  const lookOf = (r) => upperOf(r) + '/' + r.outfit.bottom.id;
+  const byKey = new Map(s.ranked.map(r => [r.key, r]));
+  const shownLooks = new Set([...s.shown].map(k => byKey.get(k)).filter(Boolean).map(lookOf));
+  const lastUpper = s.current ? upperOf(s.current.rec) : null;
+  const unseen = pool.filter(r => !s.shown.has(r.key));
+  const recent = new Set(state.history.map(h => h.outfitKey).filter(Boolean));
+  let pick = unseen.find(r => !recent.has(r.key) && !shownLooks.has(lookOf(r)) && upperOf(r) !== lastUpper);
+  if (!pick) pick = unseen.find(r => !shownLooks.has(lookOf(r)) && upperOf(r) !== lastUpper);
+  let level = 'new-look';
+  if (!pick) pick = unseen.find(r => !shownLooks.has(lookOf(r)));
+  if (!pick) { pick = unseen[0]; level = 'variation'; }
+  if (!pick) {
+    s.shown = new Set(current ? [current] : []);
+    pick = pool.find(r => r.key !== current);
+    level = 'cycle';
+  }
+  s.shown.add(pick.key);
+  return { pick, level };
+}
+
+/* Turn scoring notes into a short, readable explanation. */
+function explain(rec) {
+  const seen = new Set();
+  const uniq = rec.score.reasons.filter(r => r.text && !seen.has(r.text) && seen.add(r.text));
+  const pros = uniq.filter(r => r.weight > 0).sort((a, b) => b.weight - a.weight).slice(0, 3);
+  const cons = uniq.filter(r => r.weight < 0).sort((a, b) => a.weight - b.weight).slice(0, 2);
+  return { pros: pros.map(r => r.text), cons: cons.map(r => r.text) };
+}
+
+/* ---------------------------------------------------------------------
+   6. Outfit tab: generate, reroll, feedback
+   --------------------------------------------------------------------- */
+function contextKey() { return state.prefs.weather + '|' + state.prefs.occasion + '|' + state.wardrobe.length + '|' + dirtyItems().map(i => i.id).sort().join(','); }
+
+function generate(isReroll) {
+  const ctx = { weather: state.prefs.weather, occasion: state.prefs.occasion };
+  const fresh = !isReroll || !state.session;
+  const ck = contextKey();
+  // Re-rank when anything changed; a reroll keeps the "already shown" memory.
+  if (fresh || state.session.contextKey !== ck) {
+    const prevShown = !fresh ? state.session.shown : new Set();
+    const prevCurrent = !fresh ? state.session.current : null;
+    const res = rankOutfits(ctx);
+    if (res.missing) { renderMissing(res.missing, res.laundry); state.session = null; return; }
+    if (!res.ranked.length) { renderNoGoodOutfit(res.rejected, res.topClashes); state.session = null; return; }
+    state.session = { contextKey: ck, ranked: res.ranked, eligible: eligibleCandidates(res.ranked), rejected: res.rejected,
+      shown: prevShown, rerolls: 0, ctx, current: prevCurrent, notice: null };
+  }
+  const s = state.session;
+  const { pick, level } = nextFromSession(!fresh);
+  if (!pick) {
+    s.notice = 'No meaningful alternative: this is the only outfit in your closet that meets the quality bar right now.';
+    renderOutfit();
+    return;
+  }
+  if (!fresh) s.rerolls++;
+  s.notice = level === 'variation' ? 'No other look meets the quality bar, so this is a small variation on an earlier pick.'
+    : level === 'cycle' ? "You've now seen every outfit that meets the quality bar, so the options are starting to repeat." : null;
+  const rec = pick;
+  const rank = s.ranked.indexOf(rec) + 1;
+  const entry = {
+    id: uid('out'),
+    schemaVersion: SCHEMA_VERSION,
+    engineVersion: ENGINE_VERSION,
+    createdAt: nowIso(),
+    context: { ...ctx },
+    itemIds: { top: rec.outfit.top.id, bottom: rec.outfit.bottom.id, shoes: rec.outfit.shoes.id, hoodie: rec.outfit.hoodie ? rec.outfit.hoodie.id : null },
+    snapshot: snapshotOutfit(rec.outfit),
+    score: rec.score.total,
+    colourScore: rec.score.colour,
+    tier: rec.score.tier.key,
+    rank, candidates: s.ranked.length, eligibleCandidates: s.eligible.length, rejectedCandidates: s.rejected,
+    rerollIndex: s.rerolls,
+    outfitKey: rec.key,
+    rating: null,
+    feedbackId: null,
+  };
+  state.history.push(entry);
+  state.history = state.history.slice(-HISTORY_LIMIT);
+  saveHistory();
+  s.current = { rec, entry };
+  renderOutfit();
+  renderHistory();
+}
+
+function snapshotItem(i) {
+  if (!i) return null;
+  const c = colorOf(i.color);
+  return { id: i.id, name: i.name, type: i.type, category: i.category, color: i.color, colorName: c.label, colorHex: c.hex,
+    colorFamily: c.family, colorHue: c.hue, colorTemp: c.temp, colorLightness: c.lightness, colorSaturation: c.saturation,
+    colorIntensity: c.intensity, colorNeutrality: c.neutrality, colorRole: c.role, formality: i.formality, warmth: i.warmth,
+    wearsBefore: i.wearsSinceWash ?? 0, washAfter: i.washAfter ?? null };
+}
+function snapshotOutfit(o) { return { top: snapshotItem(o.top), bottom: snapshotItem(o.bottom), shoes: snapshotItem(o.shoes), hoodie: snapshotItem(o.hoodie) }; }
+
+/* ---- Feedback events ----
+   Every Good/Bad click appends a new immutable event. Changing your mind adds
+   another event that points at the one it supersedes; nothing is overwritten.
+   The current label for an outfit is its most recent event. */
+const FEEDBACK_LABELS = ['good', 'bad'];
+function latestFeedbackFor(outfitId) {
+  for (let i = state.feedback.length - 1; i >= 0; i--) {
+    const f = state.feedback[i];
+    if (f && f.outfitId === outfitId) return f;
+  }
+  return null;
+}
+function buildFeedbackEvent(label, rec, entry, previous) {
+  const sc = rec.score, d = sc.colourDetails || {}, hd = rec.decision || {};
+  const ex = explain(rec);
+  return {
+    recordType: 'outfit_feedback',
+    schemaVersion: SCHEMA_VERSION,
+    engineVersion: ENGINE_VERSION,
+    eventId: uid('fbk'),
+    outfitId: entry.id,
+    timestamp: nowIso(),
+    label,
+    supersedesEventId: previous ? previous.eventId : null,
+    context: {
+      weather: entry.context.weather,
+      occasion: entry.context.occasion,
+      outfitGeneratedAt: entry.createdAt,
+      rank: entry.rank,
+      candidates: entry.candidates,
+      eligibleCandidates: entry.eligibleCandidates,
+      rejectedCandidates: entry.rejectedCandidates,
+      rerollIndex: entry.rerollIndex,
+      wardrobeSize: state.wardrobe.length,
+    },
+    // Garment snapshots: independent of later edits or deletions in the closet.
+    outfit: {
+      hoodieIncluded: !!entry.snapshot.hoodie,
+      top: entry.snapshot.top,
+      hoodie: entry.snapshot.hoodie || null,
+      bottom: entry.snapshot.bottom,
+      shoes: entry.snapshot.shoes,
+    },
+    recommendation: {
+      overallScore: sc.total,
+      tier: sc.tier.key,
+      colourScore: sc.colour,
+      colourTier: sc.colourTier,
+      components: sc.components,
+      contextAdjustments: sc.context,
+      saturation: { verdict: d.saturationVerdict, loudColours: d.loudColours, focalColour: d.focalColour, score: sc.components.saturation },
+      temperature: { verdict: d.temperatureVerdict, ...d.temperatures, score: sc.components.temperature },
+      contrast: { upperBottomLightnessGap: d.upperBottomLightnessGap, score: sc.components.contrast },
+      colourRelationships: d.relationships,
+      hoodie: {
+        included: !!hd.added,
+        improvedOutfit: !!hd.added,
+        hoodiesConsidered: hd.considered ?? 0,
+        scoreDelta: hd.delta ?? null,
+        colourGain: hd.colourGain ?? null,
+        withoutHoodie: hd.withoutHoodie ?? null,
+        options: hd.options || [],
+        note: hd.note || null,
+      },
+      explanation: { strengths: ex.pros, cautions: ex.cons },
+    },
+  };
+}
+/* Light validation: reports problems but never deletes records. */
+function validateFeedbackEvent(f) {
+  if (!f || typeof f !== 'object') return 'not an object';
+  if (!f.eventId) return 'missing eventId';
+  if (!FEEDBACK_LABELS.includes(f.label)) return 'invalid label';
+  if (!f.timestamp || isNaN(Date.parse(f.timestamp))) return 'invalid timestamp';
+  if (!f.outfit || !f.outfit.top || !f.outfit.bottom) return 'missing outfit snapshot';
+  return null;
+}
+function recordFeedback(label) {
+  const cur = state.session && state.session.current;
+  if (!cur || !FEEDBACK_LABELS.includes(label)) return;
+  const { rec, entry } = cur;
+  const previous = latestFeedbackFor(entry.id);
+  if (previous && previous.label === label) { toast(`Already saved as ${cap(label)}`); return; }
+  const event = buildFeedbackEvent(label, rec, entry, previous);
+  state.feedback.push(event);
+  if (!saveFeedback()) { state.feedback.pop(); return; } // Store.write already reported the error
+  entry.rating = label;
+  entry.feedbackId = event.eventId;
+  saveHistory();
+  renderOutfit();
+  renderHistory();
+  toast(previous ? `Feedback changed to ${cap(label)} and saved` : 'Feedback saved');
+}
+
+/* ---------------------------------------------------------------------
+   7. Rendering
+   --------------------------------------------------------------------- */
+function renderSegs() {
+  const mk = (el, list, key) => {
+    el.innerHTML = list.map(x => `<button type="button" data-k="${x.key}" aria-pressed="${state.prefs[key] === x.key}">${x.label}</button>`).join('');
+    el.onclick = (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      state.prefs[key] = b.dataset.k; savePrefs(); renderSegs();
+    };
+  };
+  mk($('#weatherSeg'), WEATHER, 'weather');
+  mk($('#occasionSeg'), OCCASIONS, 'occasion');
+}
+
+function wearInfo(item) {
+  const live = state.wardrobe.find(i => i.id === item.id) || item;
+  return live.washAfter == null ? '' : ` · worn ${live.wearsSinceWash} of ${live.washAfter}`;
+}
+function pieceHtml(role, item, added) {
+  if (!item) return '';
+  const c = colorOf(item.color);
+  return `<div class="piece${added ? ' added' : ''}">
+    <div class="blob" style="background-color:${c.hex}"></div>
+    <div class="grow">
+      <div class="role">${role}</div>
+      <div class="name">${escapeHtml(item.name)}</div>
+      <div class="desc">${typeLabel(item.type)} · ${c.label}${wearInfo(item)}</div>
+    </div></div>`;
+}
+
+function renderOutfit() {
+  const area = $('#outfitArea');
+  const s = state.session;
+  const cur = s && s.current;
+  if (!cur) { area.innerHTML = state.wardrobe.length ? '' : emptyWardrobeHtml(); bindEmpty(); return; }
+  const { rec, entry } = cur;
+  const o = rec.outfit;
+  const v = rec.score.tier;
+  const ex = explain(rec);
+  const fb = latestFeedbackFor(entry.id);
+  const colors = [o.hoodie, o.top, o.bottom, o.shoes].filter(Boolean).map(i => colorOf(i.color).hex);
+  // Situation B: the best outfit available today is only Acceptable (or Weak).
+  const bestTier = s.ranked[0].score.tier;
+  const limited = bestTier.key === 'acceptable' || bestTier.key === 'weak';
+  const alternatives = s.eligible.length - 1;
+
+  area.innerHTML = `<div class="card">
+    <div class="score-line">
+      <div><span class="verdict" style="color:${v.color}">${v.label} outfit</span>
+      <span class="small muted"> · ${Math.round(rec.score.total)}/100</span></div>
+      <span class="chip">${labelOf(WEATHER, entry.context.weather)} · ${labelOf(OCCASIONS, entry.context.occasion)}</span>
+    </div>
+    ${limited ? `<div class="banner">Your options are limited today: the strongest combination in your closet is only ${bestTier.label.toLowerCase()}. A versatile colour such as white, grey, navy or beige would open up better outfits.</div>` : ''}
+    ${s.notice ? `<div class="banner">${escapeHtml(s.notice)}</div>` : ''}
+    <div class="palette">${colors.map(h => `<div style="background:${h}"></div>`).join('')}</div>
+    <div class="outfit">
+      ${pieceHtml('Main top', o.top)}
+      ${pieceHtml('Hoodie layer', o.hoodie, true)}
+      ${pieceHtml('Bottom', o.bottom)}
+      ${pieceHtml('Shoes', o.shoes)}
+    </div>
+    <h3 style="margin-top:4px">Why this works</h3>
+    <ul class="why">
+      ${ex.pros.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+      ${rec.decision.note ? `<li>${hoodieNoteHtml(rec.decision.note)}</li>` : ''}
+      ${ex.cons.map(t => `<li class="neg">Keep in mind: ${escapeHtml(t)}</li>`).join('')}
+    </ul>
+    <details class="breakdown"><summary>How this was scored</summary>
+      <table>
+        <tr><td><b>Colour score</b> (${rec.score.colour}/100 · ${tierFor(rec.score.colour).label})</td><td></td></tr>
+        ${Object.entries(rec.score.components).map(([k, c]) => `<tr><td>${COMPONENT_LABELS[k]}</td><td>${c.pts} / ${c.max}</td></tr>`).join('')}
+        <tr><td><b>Context adjustments</b></td><td></td></tr>
+        ${Object.entries(rec.score.context).map(([k, val]) => `<tr><td>${cap(k)}</td><td>${val > 0 ? '+' : ''}${val}</td></tr>`).join('')}
+        <tr><td><b>Overall</b></td><td><b>${rec.score.total}</b></td></tr>
+      </table>
+      <p class="small muted" style="margin:8px 0 0">Ranked #${entry.rank} of ${s.ranked.length} acceptable outfits${s.rejected ? ` (${s.rejected} clashing combinations were rejected)` : ''}. Rerolls pick from the ${s.eligible.length} strongest. Tiers: Excellent 85+, Good 74+, Acceptable 62+, Weak 45+; below 45, or any serious clash, is rejected. Colour values are approximations of typical garments in each colour.</p>
+    </details>
+    <div class="actions" style="margin-top:12px">
+      <button class="btn good" id="btnGood" aria-pressed="${!!fb && fb.label === 'good'}">Good</button>
+      <button class="btn bad" id="btnBad" aria-pressed="${!!fb && fb.label === 'bad'}">Bad</button>
+      <button class="btn" id="btnReroll" title="${alternatives ? alternatives + ' alternative' + (alternatives === 1 ? '' : 's') + ' available' : 'No alternatives meet the quality bar'}">Reroll</button>
+    </div>
+    <div class="wear-row">${entry.wornEventId
+      ? `<span class="small muted">Marked as worn ✓</span> <button class="link-btn" id="btnUndoWear" type="button">Undo</button>`
+      : `<button class="btn block" id="btnWear" type="button">I wore this</button>`}</div>
+    <p class="small muted fb-status">${fb ? `✓ Saved as <b>${cap(fb.label)}</b>. Tap the other button to change it; both answers are kept.` : 'Rate this outfit to add it to your feedback dataset.'}</p>
+  </div>`;
+
+  $('#btnGood').onclick = () => recordFeedback('good');
+  $('#btnBad').onclick = () => recordFeedback('bad');
+  $('#btnReroll').onclick = () => generate(true);
+  const bw = $('#btnWear'); if (bw) bw.onclick = wearOutfit;
+  const bu = $('#btnUndoWear'); if (bu) bu.onclick = undoWear;
+  $('#btnGenerate').textContent = 'Start over';
+}
+
+/* Hoodie notes read "No hoodie: …" or "Grey hoodie added: …"; bold the lead-in. */
+function hoodieNoteHtml(note) {
+  const i = note.indexOf(': ');
+  return i > 0 ? `<b>${escapeHtml(note.slice(0, i + 1))}</b> ${escapeHtml(note.slice(i + 2))}` : escapeHtml(note);
+}
+const COMPONENT_LABELS = { harmony: 'Colour harmony', saturation: 'Saturation balance', contrast: 'Light/dark contrast', temperature: 'Temperature', shoes: 'Shoes', balance: 'Visual balance' };
+
+/* Situation C: complete outfits exist, but every one seriously clashes. */
+function renderNoGoodOutfit(rejected, clashes) {
+  $('#outfitArea').innerHTML = `<div class="card">
+    <h2>No harmonious outfit available</h2>
+    <p>${rejected === 1
+      ? 'Your closet can make one complete outfit, but it seriously clashes, so I won\'t recommend it.'
+      : `Your closet can make ${rejected} complete outfits, but every one of them seriously clashes, so I won't recommend any.`}</p>
+    ${clashes.length ? `<p class="small muted" style="margin-bottom:4px">Main problems:</p><ul class="why">${clashes.map(c => `<li>${escapeHtml(cap(c))}</li>`).join('')}</ul>` : ''}
+    <p class="small">Adding a versatile colour (white, black, grey, navy, beige or denim) usually fixes this.</p>
+    <button class="btn primary" id="btnGoWardrobe">Go to My Closet</button></div>`;
+  bindEmpty();
+}
+const NEEDS_TEXT = 'A complete outfit needs a T-shirt or Shirt, Pants or Jeans, and Shoes. Hoodies are optional.';
+const MISSING_TEXT = { top: 'a main top (T-shirt or Shirt)', bottom: 'a bottom (Pants or Jeans)', shoes: 'a pair of Shoes' };
+const joinList = (list) => list.length > 1 ? list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1] : list[0];
+function emptyWardrobeHtml() {
+  return `<div class="card empty">
+        <p><b>Your closet is empty.</b><br>${NEEDS_TEXT}</p>
+    <button class="btn primary" id="btnGoWardrobe">Go to My Closet</button></div>`;
+}
+function bindEmpty() {
+  const g = $('#btnGoWardrobe'); if (g) g.onclick = () => { switchTab('wardrobe'); $('#fName').focus(); };
+}
+/* Situation D: a required category is missing, or its items are all in the wash. */
+function renderMissing(missing, laundry = []) {
+  if (!state.wardrobe.length) { $('#outfitArea').innerHTML = emptyWardrobeHtml(); bindEmpty(); return; }
+  const owned = (role) => state.wardrobe.some(i => TYPE_MAP[i.type].role === role);
+  const reallyMissing = missing.filter(m => !owned(m));
+  const washing = laundry.filter(i => missing.includes(i.category));
+  let html = '<div class="card"><h2>I can\'t build a complete outfit right now</h2>';
+  if (washing.length) {
+    html += `<p>These are in the wash and can't be recommended until you mark them as washed:</p>
+      <ul class="items">${washing.map(i => `<li><span class="swatch lg" style="background:${colorOf(i.color).hex}"></span>
+        <div class="grow"><div class="item-name">${escapeHtml(i.name)}</div><div class="meta">${typeLabel(i.type)} · worn ${i.wearsSinceWash} of ${i.washAfter}</div></div>
+        <button class="btn sm" data-wash="${i.id}" type="button">Mark washed</button></li>`).join('')}</ul>`;
+  }
+  if (reallyMissing.length) html += `<p>Your closet also has no ${joinList(reallyMissing.map(m => MISSING_TEXT[m]))}.</p><p class="small muted">${NEEDS_TEXT}</p>`;
+  html += '<button class="btn primary" id="btnGoWardrobe" type="button">Go to My Closet</button></div>';
+  $('#outfitArea').innerHTML = html;
+  bindEmpty();
+  $$('#outfitArea [data-wash]').forEach(b => b.onclick = () => { const it = state.wardrobe.find(x => x.id === b.dataset.wash); if (it) washItems([it], 'wash'); });
+}
+
+/* ---- My Closet: add form, list, two-step delete ---- */
+function fillSelect(sel, list, placeholder) {
+  sel.innerHTML = `<option value="">${placeholder}</option>` + list.map(x => `<option value="${x.key}">${x.label}</option>`).join('');
+}
+/* ---- Colour picker: curated shades plus any custom colour ---- */
+function renderColourGrid() {
+  const sel = $('#fColor').value;
+  $('#colourGrid').innerHTML = COLOR_GROUPS.map(([name, ids]) => `<div class="cg"><div class="cg-title">${name}</div><div class="cg-row">${ids.map(id => {
+    const c = COLOR_MAP[id];
+    return `<button type="button" class="sw" data-colour="${id}" title="${c.label}" aria-label="${c.label}" aria-pressed="${sel === id}" style="background:${c.hex}"></button>`;
+  }).join('')}</div></div>`).join('') + `<div class="cg"><div class="cg-title">Something else</div><div class="cg-row">
+    <label class="sw sw-custom" id="swCustom" title="Pick any colour" aria-label="Pick a custom colour">+<input type="color" id="fColorCustom" class="hidden-input" value="#808080"></label></div></div>`;
+  $('#fColorCustom').addEventListener('input', (e) => setColour(e.target.value));
+  updateColorPreview();
+}
+function setColour(key) {
+  const el = $('#fColor');
+  el.value = key;
+  if (key) setFieldError(el, '');
+  $$('#colourGrid .sw[data-colour]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.colour === key)));
+  const custom = HEX_RE.test(key);
+  const sw = $('#swCustom'); if (sw) { sw.style.background = custom ? key : ''; sw.classList.toggle('chosen', custom); sw.setAttribute('aria-pressed', String(custom)); }
+  updateColorPreview();
+}
+function updateColorPreview() {
+  const k = $('#fColor').value;
+  $('#fColorName').textContent = k ? '· ' + colorOf(k).label + (HEX_RE.test(k) ? ' (custom)' : '') : '';
+}
+function setFieldError(input, msg) {
+  input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  $('#' + input.id + 'Err').textContent = msg || '';
+}
+/* Wear-limit choices: 1..30 or "never" (not tracked, e.g. shoes). */
+function washOptionsHtml(selected) {
+  const opts = [];
+  for (let n = 1; n <= WASH_MAX; n++) opts.push(`<option value="${n}"${selected === n ? ' selected' : ''}>${n} wear${n === 1 ? '' : 's'}${n === 1 ? ' (wash after every wear)' : ''}</option>`);
+  opts.push(`<option value="never"${selected === null ? ' selected' : ''}>Never (don't track)</option>`);
+  return opts.join('');
+}
+function fillWashSelect(sel) { sel.innerHTML = '<option value="">Choose…</option>' + washOptionsHtml(undefined); }
+/* Pre-fill the wash limit with the type's suggestion; the user can still change it. */
+function suggestWash() {
+  const t = $('#fType').value, w = $('#fWash');
+  if (!TYPE_MAP[t] || w.dataset.touched === '1') return;
+  const s = WASH_SUGGESTION[t];
+  w.value = s === null ? 'never' : String(s);
+}
+function addItemFromForm(e) {
+  e.preventDefault();
+  const nameEl = $('#fName'), typeEl = $('#fType'), colorEl = $('#fColor'), washEl = $('#fWash');
+  const name = nameEl.value.trim();
+  const errs = [
+    [nameEl, !name ? (nameEl.value.length ? 'The name can’t be only spaces.' : 'Please enter a name for this item.') : ''],
+    [typeEl, !TYPE_MAP[typeEl.value] ? 'Please choose an item type.' : ''],
+    [colorEl, !isValidColour(colorEl.value) ? 'Please choose a colour.' : ''],
+    [washEl, !washEl.value ? 'Please choose how many wears before this needs washing.' : ''],
+  ];
+  errs.forEach(([el, msg]) => setFieldError(el, msg));
+  const firstBad = errs.find(([, msg]) => msg);
+  if (firstBad) { firstBad[0].focus(); return; }
+
+  const item = sanitizeItem({ id: uid('itm'), name, type: typeEl.value, color: colorEl.value, createdAt: nowIso(),
+    washAfter: washEl.value === 'never' ? null : Number(washEl.value), wearsSinceWash: 0 });
+  state.wardrobe.push(item);
+  if (!saveWardrobe()) { state.wardrobe.pop(); return; }
+  $('#addForm').reset(); washEl.dataset.touched = '';
+  setColour('');
+  state.session = null;
+  renderWardrobe(); renderHeader();
+  toast(`Added “${item.name}”`);
+  nameEl.focus();
+}
+function closetRowHtml(i) {
+  const c = colorOf(i.color), dirty = isDirty(i);
+  const track = i.washAfter == null ? 'not tracked' : `worn ${i.wearsSinceWash} of ${i.washAfter}`;
+  return `<li class="closet-row">
+    <span class="swatch lg" style="background:${c.hex}"></span>
+    <div class="grow">
+      <div class="item-name">${escapeHtml(i.name)}${dirty ? ' <span class="badge">Needs washing</span>' : ''}</div>
+      <div class="meta">${typeLabel(i.type)} · ${c.label} · ${track}</div>
+      <div class="item-controls">
+        <label class="limit">Wash after <select data-limit="${i.id}" aria-label="Wears before wash for ${escapeHtml(i.name)}">${washOptionsHtml(i.washAfter)}</select></label>
+        ${dirty ? `<button class="btn sm primary" data-wash="${i.id}" type="button">Mark washed</button>`
+          : (i.washAfter != null ? `<button class="btn sm" data-tolaundry="${i.id}" type="button">To wash</button>` : '')}
+      </div>
+    </div>
+    <button class="btn sm danger" data-del="${i.id}" aria-label="Delete ${escapeHtml(i.name)}">Delete</button></li>`;
+}
+function renderWardrobe() {
+  const el = $('#wardrobeList');
+  const n = state.wardrobe.length;
+  // First-run: offer to bring data over from an older copy while the app is still empty.
+  $('#importCard').classList.toggle('hidden', n > 0 || state.feedback.length > 0);
+  const meta = Store.read(KEYS.meta, {}) || {};
+  $('#laundryNotice').classList.toggle('hidden', !(meta.showLaundryNotice && n));
+  const dirty = dirtyItems();
+  $('#closetCount').textContent = n ? `${n} item${n === 1 ? '' : 's'} in your closet${dirty.length ? `, ${dirty.length} in the wash` : ''}.` : 'Add the clothes you own.';
+  if (!n) {
+    el.innerHTML = `<div class="empty"><p><b>Your closet is empty.</b><br>Add your first item using the form above.</p><p class="small">${NEEDS_TEXT}</p></div>`;
+    return;
+  }
+  const order = Object.fromEntries(TYPES.map((t, i) => [t.key, i]));
+  const sorted = (list) => [...list].sort((a, b) => (order[a.type] - order[b.type]) || a.createdAt.localeCompare(b.createdAt));
+  const clean = sorted(state.wardrobe.filter(i => !isDirty(i)));
+  let html = '';
+  if (dirty.length) html += `<div class="row" style="margin-bottom:4px"><h3 class="grow" style="margin:0">In the wash (${dirty.length})</h3><button class="btn sm primary" id="btnWashAll" type="button">Wash all</button></div>
+    <ul class="items">${sorted(dirty).map(closetRowHtml).join('')}</ul>${clean.length ? '<h3>Clean</h3>' : ''}`;
+  if (clean.length) html += `<ul class="items">${clean.map(closetRowHtml).join('')}</ul>`;
+  el.innerHTML = html;
+}
+/* Safe deletion: first tap arms the button, second tap within 4s deletes. */
+function onClosetClick(e) {
+  const find = (id) => state.wardrobe.find(i => i.id === id);
+  const wash = e.target.closest('[data-wash]');
+  if (wash) { const it = find(wash.dataset.wash); if (it) washItems([it], 'wash'); return; }
+  if (e.target.closest('#btnWashAll')) { washItems(dirtyItems(), 'wash'); return; }
+  const tw = e.target.closest('[data-tolaundry]');
+  if (tw) { const it = find(tw.dataset.tolaundry); if (it) sendToWash(it); return; }
+  const btn = e.target.closest('[data-del]');
+  if (!btn) return;
+  if (btn.dataset.armed !== '1') {
+    $$('[data-del][data-armed="1"]').forEach(b => { b.dataset.armed = ''; b.textContent = 'Delete'; b.classList.remove('armed'); });
+    btn.dataset.armed = '1';
+    btn.textContent = 'Tap to confirm';
+    btn.classList.add('armed');
+    clearTimeout(onClosetClick._t);
+    onClosetClick._t = setTimeout(() => { if (btn.isConnected) { btn.dataset.armed = ''; btn.textContent = 'Delete'; btn.classList.remove('armed'); } }, 4000);
+    return;
+  }
+  const it = find(btn.dataset.del);
+  if (!it) return;
+  // Only the active wardrobe changes: history, feedback and the wear log keep their own item snapshots.
+  state.wardrobe = state.wardrobe.filter(i => i.id !== it.id);
+  saveWardrobe();
+  state.session = null;
+  renderWardrobe(); renderHeader();
+  toast(`Deleted “${it.name}”. Past outfits and feedback are kept.`, 3200);
+}
+function onClosetChange(e) {
+  const sel = e.target.closest('[data-limit]'); if (!sel) return;
+  const it = state.wardrobe.find(i => i.id === sel.dataset.limit); if (it) setWashLimit(it, sel.value);
+}
+
+/* ---- Laundry actions. Every change is also appended to the wear log. ---- */
+function wearEvent(kind, extra) {
+  return { recordType: 'laundry_event', kind, schemaVersion: SCHEMA_VERSION, engineVersion: ENGINE_VERSION, eventId: uid('lnd'), timestamp: nowIso(), ...extra };
+}
+function itemBrief(i, after) { return { id: i.id, name: i.name, type: i.type, color: i.color, wearsBefore: i.wearsSinceWash, wearsAfter: after, washAfter: i.washAfter }; }
+/* Commit item changes + a log event together; roll the item changes back if saving fails. */
+function commitLaundry(items, event, apply) {
+  const before = items.map(i => ({ i, w: i.wearsSinceWash, worn: i.lastWornAt, washed: i.lastWashedAt }));
+  apply();
+  state.wears.push(event);
+  if (saveWardrobe() && saveWears()) return true;
+  state.wears.pop();
+  before.forEach(b => { b.i.wearsSinceWash = b.w; b.i.lastWornAt = b.worn; b.i.lastWashedAt = b.washed; });
+  return false;
+}
+function wearOutfit() {
+  const cur = state.session && state.session.current; if (!cur) return;
+  const entry = cur.entry; if (entry.wornEventId) return;                   // once per outfit: a double tap cannot double count
+  const items = Object.values(entry.itemIds).filter(Boolean).map(id => state.wardrobe.find(i => i.id === id)).filter(Boolean);
+  if (!items.length) return toast('Those clothes are no longer in your closet.');
+  const ts = nowIso();
+  const ev = wearEvent('wear', { outfitId: entry.id, context: entry.context,
+    items: items.map(i => ({ ...itemBrief(i, i.wearsSinceWash + 1), previousLastWornAt: i.lastWornAt })), outfit: entry.snapshot });
+  ev.timestamp = ts;
+  if (!commitLaundry(items, ev, () => items.forEach(i => { i.wearsSinceWash += 1; i.lastWornAt = ts; }))) return;
+  entry.wornEventId = ev.eventId; saveHistory();
+  const nowDirty = items.filter(isDirty);
+  renderOutfit(); renderHistory();
+  toast(nowDirty.length ? 'Worn. ' + joinList(nowDirty.map(i => i.name)) + (nowDirty.length === 1 ? ' now needs' : ' now need') + ' washing.' : 'Marked as worn', 3500);
+}
+function undoWear() {
+  const cur = state.session && state.session.current; if (!cur) return;
+  const entry = cur.entry;
+  const ev = state.wears.find(e => e.eventId === entry.wornEventId); if (!ev) return;
+  const items = ev.items.map(x => state.wardrobe.find(i => i.id === x.id)).filter(Boolean);
+  // Items washed after this wear already reset their counter, so they are left alone.
+  const affected = items.filter(i => !(i.lastWashedAt && i.lastWashedAt > ev.timestamp));
+  const undo = wearEvent('wear_undo', { undoesEventId: ev.eventId, outfitId: entry.id, items: affected.map(i => itemBrief(i, Math.max(0, i.wearsSinceWash - 1))) });
+  const prevWorn = Object.fromEntries(ev.items.map(x => [x.id, x.previousLastWornAt]));
+  if (!commitLaundry(affected, undo, () => affected.forEach(i => { i.wearsSinceWash = Math.max(0, i.wearsSinceWash - 1); i.lastWornAt = prevWorn[i.id] || null; }))) return;
+  entry.wornEventId = null; saveHistory();
+  renderOutfit(); renderHistory(); toast('Wear undone');
+}
+function washItems(items, kind) {
+  const list = items.filter(i => i.wearsSinceWash > 0);
+  if (!list.length) return;
+  const ev = wearEvent(kind, { items: list.map(i => itemBrief(i, 0)) });
+  if (!commitLaundry(list, ev, () => list.forEach(i => { i.wearsSinceWash = 0; i.lastWashedAt = ev.timestamp; }))) return;
+  state.session = null;
+  renderWardrobe(); renderData();
+  if (!$('#tab-today').classList.contains('hidden')) generate(false);
+  toast(list.length === 1 ? list[0].name + ' marked as washed' : list.length + ' items marked as washed');
+}
+function sendToWash(item) {
+  if (item.washAfter == null || isDirty(item)) return;
+  const ev = wearEvent('sent_to_wash', { items: [itemBrief(item, item.washAfter)] });
+  if (!commitLaundry([item], ev, () => { item.wearsSinceWash = item.washAfter; })) return;
+  state.session = null; renderWardrobe(); toast(item.name + ' moved to the wash');
+}
+function setWashLimit(item, value) {
+  const prev = item.washAfter;
+  item.washAfter = value === 'never' ? null : Math.min(WASH_MAX, Math.max(1, parseInt(value, 10) || 1));
+  if (!saveWardrobe()) { item.washAfter = prev; }
+  state.session = null; renderWardrobe();
+}
+
+/* Current label per outfit = its latest feedback event. */
+function currentLabels() {
+  const m = new Map();
+  for (const f of state.feedback) if (f && f.outfitId) m.set(f.outfitId, f.label);
+  return m;
+}
+function renderHistory() {
+  const list = state.history.slice(-HISTORY_LIMIT).reverse();
+  $('#recentCard').classList.toggle('hidden', !list.length);
+  $('#historyList').innerHTML = list.map(h => {
+    const sn = h.snapshot || {};
+    const parts = ['top', 'hoodie', 'bottom', 'shoes'].map(r => sn[r]).filter(Boolean);
+    const d = new Date(h.createdAt);
+    const badge = h.rating === 'good' ? '<span class="chip" style="color:var(--good)">Good</span>'
+      : h.rating === 'bad' ? '<span class="chip" style="color:var(--bad)">Bad</span>' : '<span class="chip">Not rated</span>';
+    return `<li><div class="dots">${parts.map(p => `<span class="swatch" style="background:${p.colorHex}"></span>`).join('')}</div>
+      <div class="grow small"><div>${parts.map(p => escapeHtml(p.name)).join(' · ')}</div>
+      <div class="muted">${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${labelOf(WEATHER, h.context.weather)} · ${labelOf(OCCASIONS, h.context.occasion)}</div></div>${badge}</li>`;
+  }).join('');
+}
+
+function renderData() {
+  const kb = (Store.bytesUsed() / 1024).toFixed(1);
+  const cur = currentLabels();
+  const invalid = state.feedback.filter(f => validateFeedbackEvent(f)).length;
+  $('#fbStats').innerHTML = `<div class="stat"><b>${state.feedback.length}</b><span>feedback events</span></div>
+    <div class="stat"><b>${cur.size}</b><span>outfits rated</span></div>
+    <div class="stat"><b>${[...cur.values()].filter(l => l === 'good').length} / ${[...cur.values()].filter(l => l === 'bad').length}</b><span>good / bad now</span></div>`
+    + (invalid ? `<p class="small" style="grid-column:1/-1;color:var(--warn);margin:0">${invalid} older or incomplete record${invalid === 1 ? '' : 's'} kept as-is and included in exports.</p>` : '');
+  $('#btnExportJsonl').disabled = $('#btnExportCsv').disabled = !state.feedback.length;
+  $('#storageInfo').innerHTML = `${state.wardrobe.length} items · ${state.history.length} recent outfits · ${state.feedback.length} feedback records · ${state.wears.length} laundry events · ~${kb} KB used<br>Schema v${SCHEMA_VERSION} · engine ${ENGINE_VERSION}<br>Storage protection: ${persistGranted === true ? 'on (the browser will not clear it automatically)' : persistGranted === false ? 'not granted (back up regularly)' : 'unknown'}`;
+  const lb = lastBackupAt(), d = daysSince(lb);
+  $('#backupStatus').textContent = lb ? `Last backup: ${d === 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'}.` : 'No backup made on this device yet.';
+}
+
+function renderHeader() { /* the closet count is shown on the My Closet page */ }
+
+function showBanner(msg) { const b = $('#storageBanner'); b.textContent = msg; b.classList.remove('hidden'); }
+
+/* Two primary sections (My Closet, Decide) plus My Data from the header. */
+function switchTab(name) {
+  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  if (name === 'data') $('#btnMyData').setAttribute('aria-current', 'page');
+  else $('#btnMyData').removeAttribute('aria-current');
+  $$('main section[role=tabpanel]').forEach(sec => sec.classList.toggle('hidden', sec.id !== 'tab-' + name));
+  if (name === 'wardrobe') renderWardrobe();
+  if (name === 'data') renderData();
+  if (name === 'today') { renderOutfit(); renderHistory(); renderBackupNudge(); }
+  window.scrollTo(0, 0);
+}
+
+/* ---------------------------------------------------------------------
+   9. Export / import / clear
+   --------------------------------------------------------------------- */
+function download(filename, text, type) {
+  try {
+    const blob = new Blob([text], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) { console.error(e); toast('Export failed.'); }
+}
+const stamp = () => new Date().toISOString().slice(0, 10);
+
+/* JSON Lines: one complete feedback event per line, UTF-8. */
+function exportJSONL() {
+  if (!state.feedback.length) return toast('No feedback recorded yet.');
+  const lines = state.feedback.map(f => JSON.stringify(f));
+  download(`outfit-feedback-${stamp()}.jsonl`, lines.join('\n') + '\n', 'application/x-ndjson;charset=utf-8');
+  toast(`Exported ${lines.length} feedback event${lines.length === 1 ? '' : 's'}`);
+}
+
+/* CSV: one row per feedback event, flattened into named columns. */
+const CSV_ITEM_FIELDS = [['id', 'id'], ['name', 'name'], ['type', 'type'], ['colour', 'color'], ['colour_name', 'colorName'], ['colour_hex', 'colorHex'], ['colour_family', 'colorFamily'],
+  ['colour_temp', 'colorTemp'], ['colour_lightness', 'colorLightness'], ['colour_saturation', 'colorSaturation'], ['colour_role', 'colorRole'],
+  ['wears_before', 'wearsBefore'], ['wash_after', 'washAfter']];
+const CSV_COMPONENTS = ['harmony', 'saturation', 'contrast', 'temperature', 'shoes', 'balance'];
+function csvCell(v) {
+  if (v == null) return '';
+  let t = Array.isArray(v) ? v.join('; ') : String(v);
+  // Guard against spreadsheet formula injection in text cells (not numbers).
+  if (/^[=+\-@]/.test(t) && isNaN(Number(t))) t = "'" + t;
+  return /[",\r\n]|^\s|\s$/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function feedbackToCsvRow(f, latestIds) {
+  const o = f.outfit || {}, r = f.recommendation || {}, c = f.context || {}, h = r.hoodie || {};
+  const comp = r.components || {}, bd = r.breakdown || {};
+  const compPts = (k) => comp[k] ? comp[k].pts : bd[k];
+  const rels = (r.colourRelationships || []).map(x => `${x.pieces.join('+')}: ${x.colours.join('/')} ${x.relation} (${x.score})`);
+  const row = {
+    event_id: f.eventId, outfit_id: f.outfitId, timestamp: f.timestamp, label: f.label,
+    is_current_label: latestIds.has(f.eventId), supersedes_event_id: f.supersedesEventId,
+    schema_version: f.schemaVersion, engine_version: f.engineVersion, legacy_record: !!f.legacy,
+    weather: c.weather, occasion: c.occasion, rank: c.rank ?? f.rank, candidates: c.candidates ?? f.candidates, reroll_index: c.rerollIndex ?? f.rerollIndex,
+    overall_score: r.overallScore, tier: r.tier, colour_score: r.colourScore, colour_tier: r.colourTier,
+    ...Object.fromEntries(CSV_COMPONENTS.map(k => [k + '_points', compPts(k)])),
+    formality_adjustment: r.contextAdjustments ? r.contextAdjustments.formality : bd.formality,
+    weather_adjustment: r.contextAdjustments ? r.contextAdjustments.weather : bd.weather,
+    saturation_verdict: r.saturation && r.saturation.verdict, loud_colours: r.saturation && r.saturation.loudColours, focal_colour: r.saturation && r.saturation.focalColour,
+    temperature_verdict: r.temperature && r.temperature.verdict, warm_colours: r.temperature && r.temperature.warm, cool_colours: r.temperature && r.temperature.cool,
+    upper_bottom_lightness_gap: r.contrast && r.contrast.upperBottomLightnessGap,
+    colour_relationships: rels,
+    hoodie_included: !!o.hoodieIncluded || !!o.hoodie, hoodie_improved_outfit: !!h.improvedOutfit, hoodie_score_delta: h.scoreDelta, hoodie_colour_gain: h.colourGain, hoodies_considered: h.hoodiesConsidered, hoodie_decision: h.note,
+  };
+  for (const role of ['top', 'hoodie', 'bottom', 'shoes']) {
+    const item = o[role];
+    for (const [col, key] of CSV_ITEM_FIELDS) row[`${role}_${col}`] = item ? item[key] : '';
+  }
+  return row;
+}
+function exportCSV() {
+  if (!state.feedback.length) return toast('No feedback recorded yet.');
+  const latest = new Map();
+  for (const f of state.feedback) if (f && f.outfitId) latest.set(f.outfitId, f.eventId);
+  const latestIds = new Set(latest.values());
+  const rows = state.feedback.filter(f => f && typeof f === 'object').map(f => feedbackToCsvRow(f, latestIds));
+  const header = Object.keys(rows[0]);
+  // BOM + CRLF so Excel detects UTF-8 and rows correctly; Google Sheets handles both.
+  const text = '\ufeff' + [header.join(','), ...rows.map(r => header.map(k => csvCell(r[k])).join(','))].join('\r\n') + '\r\n';
+  download(`outfit-feedback-${stamp()}.csv`, text, 'text/csv;charset=utf-8');
+  toast(`Exported ${rows.length} feedback event${rows.length === 1 ? '' : 's'}`);
+}
+function backupPayload() {
+  return JSON.stringify({
+    app: 'outfit-decider', schemaVersion: SCHEMA_VERSION, engineVersion: ENGINE_VERSION, exportedAt: nowIso(),
+    wardrobe: state.wardrobe, history: state.history, feedback: state.feedback, wears: state.wears, prefs: state.prefs,
+  }, null, 2);
+}
+/* Remember when the last backup was made (shown on My Data, used for the reminder). */
+function markBackup() {
+  const meta = Store.read(KEYS.meta, {}) || {};
+  Store.write(KEYS.meta, { ...meta, lastBackupAt: nowIso() });
+  renderData();
+  renderBackupNudge();
+}
+function lastBackupAt() { const m = Store.read(KEYS.meta, {}) || {}; return m.lastBackupAt || null; }
+function exportAll() {
+  download(`outfit-decider-backup-${stamp()}.json`, backupPayload(), 'application/json');
+  markBackup();
+}
+/* On phones the share sheet lets you save the backup straight to Files, Drive or email. */
+async function shareBackup() {
+  try {
+    const file = new File([backupPayload()], `outfit-decider-backup-${stamp()}.json`, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Outfit Decider backup' });
+      markBackup();
+    } else exportAll();
+  } catch (e) {
+    if (e && e.name !== 'AbortError') { console.error(e); toast('Sharing failed. Use Download backup instead.'); }
+  }
+}
+function daysSince(iso) { return iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400000) : null; }
+/* A gentle nudge on Decide when there is data worth protecting and no recent backup. */
+function renderBackupNudge() {
+  const b = $('#backupNudge'); if (!b) return;
+  const d = daysSince(lastBackupAt());
+  const valuable = state.feedback.length >= 3 || state.wardrobe.length >= 5;
+  const overdue = valuable && (d === null || d >= 14);
+  b.classList.toggle('hidden', !overdue);
+  if (overdue) $('#backupNudgeText').textContent = d === null ? "You haven't backed up yet. Your data lives only on this device." : `Your last backup was ${d} days ago.`;
+}
+/* Import a full backup. Safe by design:
+   - the file is fully parsed, migrated and validated BEFORE anything is replaced;
+   - current data is copied to a "preImport" safety key first (import aborts if that copy cannot be saved);
+   - the confirmation shows exactly what will be restored and what will be replaced;
+   - nothing in the backup is dropped silently: skipped items are counted and reported. */
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      let data;
+      try { data = JSON.parse(reader.result); } catch (e) { throw new Error('That file is not valid JSON.'); }
+      if (!data || data.app !== 'outfit-decider' || !Array.isArray(data.wardrobe)) throw new Error('Not an Outfit Decider backup file. Use the file from My Data → Download backup.');
+      const ver = Number(data.schemaVersion) || 1;
+      if (ver > SCHEMA_VERSION) throw new Error('This backup is from a newer version of the app.');
+      const migrated = migrateData({ wardrobe: data.wardrobe, history: data.history, feedback: data.feedback, wears: data.wears }, ver);
+      const wears = Array.isArray(migrated.wears) ? migrated.wears : [];
+      const wardrobe = migrated.wardrobe.map(sanitizeItem).filter(Boolean);
+      const skipped = data.wardrobe.length - wardrobe.length;
+      const history = Array.isArray(migrated.history) ? migrated.history : [];
+      const feedback = Array.isArray(migrated.feedback) ? migrated.feedback : [];
+      const labels = new Set(feedback.filter(f => f && f.outfitId).map(f => f.outfitId)).size;
+      const hasCurrent = state.wardrobe.length || state.feedback.length || state.history.length;
+      const msg = `Restore this backup?\n\nBackup contains:\n• ${wardrobe.length} closet item${wardrobe.length === 1 ? '' : 's'}${skipped ? ` (${skipped} unreadable item${skipped === 1 ? '' : 's'} skipped)` : ''}\n• ${feedback.length} feedback event${feedback.length === 1 ? '' : 's'} (${labels} outfits rated)\n• ${history.length} recent outfit${history.length === 1 ? '' : 's'}`
+        + (hasCurrent ? `\n\nThis replaces what is here now (${state.wardrobe.length} items, ${state.feedback.length} feedback events). A safety copy of the current data is kept first.` : '');
+      if (!confirm(msg)) return;
+      if (hasCurrent) {
+        const safetyKey = 'outfitDecider.preImport.' + Date.now();
+        const saved = Store.write(safetyKey, { savedAt: nowIso(), schemaVersion: SCHEMA_VERSION, wardrobe: state.wardrobe, history: state.history, feedback: state.feedback, wears: state.wears, prefs: state.prefs });
+        if (!saved) throw new Error('Could not keep a safety copy of the current data, so nothing was changed. Download a backup first.');
+      }
+      state.wardrobe = wardrobe; state.history = history; state.feedback = feedback; state.wears = wears;
+      if (data.prefs && typeof data.prefs === 'object') state.prefs = { ...state.prefs, ...data.prefs };
+      if (!(saveWardrobe() && saveHistory() && saveFeedback() && saveWears() && savePrefs())) throw new Error('Saving failed part-way. Your previous data is kept under a safety copy.');
+      Store.write(KEYS.meta, { schemaVersion: SCHEMA_VERSION, importedAt: nowIso(), importedFromSchema: ver, showLaundryNotice: !!migrated.laundryDefaultsApplied && wardrobe.length > 0 });
+      state.session = null;
+      renderAll();
+      switchTab(state.wardrobe.length ? 'today' : 'wardrobe');
+      toast(`Restored ${wardrobe.length} items and ${feedback.length} feedback events`, 4000);
+    } catch (e) {
+      console.error(e); toast('Import failed: ' + e.message, 5000);
+    } finally { $$('input[type=file]').forEach(i => { i.value = ''; }); }
+  };
+  reader.onerror = () => toast('Could not read that file.');
+  reader.readAsText(file);
+}
+function clearKey(what) {
+  const msgs = { history: 'Clear the recent outfits list? Feedback records are not affected.', feedback: 'Permanently delete ALL feedback records? This cannot be undone. Export JSONL or CSV first if you want to keep your dataset.', all: 'Delete ALL data (wardrobe, history and feedback)? This cannot be undone.' };
+  if (!confirm(msgs[what])) return;
+  if (what === 'history' || what === 'all') { state.history = []; Store.remove(KEYS.history); }
+  if (what === 'feedback' || what === 'all') { state.feedback = []; Store.remove(KEYS.feedback); state.history.forEach(h => { h.rating = null; h.feedbackId = null; }); saveHistory(); }
+  if (what === 'all') { state.wardrobe = []; state.wears = []; Store.remove(KEYS.wardrobe); Store.remove(KEYS.wears); Store.remove(KEYS.prefs); }
+  state.session = null;
+  renderAll(); toast('Cleared');
+}
+
+/* ---------------------------------------------------------------------
+   9b. Phone app (PWA): install prompt, offline cache, storage protection
+   --------------------------------------------------------------------- */
+let deferredInstall = null;
+let persistGranted = null;
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+
+function setupPwa() {
+  const card = $('#installCard'), text = $('#installText'), btn = $('#btnInstall');
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!isStandalone()) {
+    card.classList.remove('hidden');
+    if (location.protocol === 'file:') text.textContent = 'This copy is opened as a plain file, so it cannot be installed. Open the app\'s web address on your phone to install it.';
+    else if (isIOS) text.textContent = 'In Safari tap the Share button, choose "Add to Home Screen", then open Outfit from your home screen. Import your backup inside the installed app, because Safari and the home-screen app keep separate data.';
+    else text.textContent = 'Install Outfit Decider for its own icon, full-screen use and offline access. If there is no Install button below, open your browser menu and choose "Install app" or "Add to Home screen".';
+  }
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; btn.classList.remove('hidden'); });
+  btn.onclick = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    try { await deferredInstall.userChoice; } catch (e) { /* ignore */ }
+    deferredInstall = null; btn.classList.add('hidden');
+  };
+  window.addEventListener('appinstalled', () => { card.classList.add('hidden'); toast('Outfit Decider installed'); });
+
+  // Ask the browser not to evict our data when storage is tight.
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then((ok) => { persistGranted = ok; renderData(); }).catch(() => {});
+  }
+
+  // Offline support + update flow (service workers need http(s), not file://).
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    const offerUpdate = (worker) => {
+      const bar = $('#updateBanner'); bar.classList.remove('hidden');
+      $('#btnUpdate').onclick = () => worker.postMessage('SKIP_WAITING');
+    };
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+      reg.addEventListener('updatefound', () => {
+        const w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); });
+      });
+    }).catch((e) => console.error('Service worker registration failed', e));
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloading) { reloading = true; location.reload(); } });
+  }
+}
+
+/* ---------------------------------------------------------------------
+   10. Boot
+   --------------------------------------------------------------------- */
+function renderAll() { renderSegs(); renderHeader(); renderOutfit(); renderWardrobe(); renderHistory(); renderData(); renderBackupNudge(); $('#btnGenerate').textContent = 'Decide my outfit'; }
+
+function init() {
+  if (!Store.available) showBanner('Browser storage is unavailable (private mode?). Your data will be lost when you close this page.');
+  loadState();
+  fillSelect($('#fType'), TYPES, 'Choose a type…');
+  renderColourGrid();
+  $('#colourGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-colour]'); if (b) setColour(b.dataset.colour); });
+  fillWashSelect($('#fWash'));
+  $('#fType').addEventListener('change', suggestWash);
+  $('#fWash').addEventListener('change', (e) => { e.target.dataset.touched = '1'; if (e.target.value) setFieldError(e.target, ''); });
+  $('#btnDismissLaundry').onclick = () => { const m = Store.read(KEYS.meta, {}) || {}; Store.write(KEYS.meta, { ...m, showLaundryNotice: false }); renderWardrobe(); };
+
+  $$('nav.tabs button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+  $('#btnMyData').onclick = () => switchTab('data');
+  $('#btnGenerate').onclick = () => generate(false);
+  $('#addForm').addEventListener('submit', addItemFromForm);
+  // Clear a field's validation message as soon as the user fixes it.
+  ['#fName', '#fType'].forEach(s => $(s).addEventListener(s === '#fName' ? 'input' : 'change', (e) => {
+    if (e.target.getAttribute('aria-invalid') === 'true' && (s !== '#fName' || e.target.value.trim())) setFieldError(e.target, '');
+  }));
+  $('#wardrobeList').addEventListener('click', onClosetClick);
+  $('#wardrobeList').addEventListener('change', onClosetChange);
+  $('#btnExportJsonl').onclick = exportJSONL;
+  $('#btnExportCsv').onclick = exportCSV;
+  $('#btnExportAll').onclick = exportAll;
+  $('#btnShareBackup').onclick = shareBackup;
+  $('#btnNudgeBackup').onclick = () => switchTab('data');
+  if (navigator.canShare && typeof File === 'function') $('#btnShareBackup').classList.remove('hidden');
+  setupPwa();
+  $$('input.import-file').forEach(inp => { inp.onchange = (e) => { const f = e.target.files[0]; if (f) importBackup(f); }; });
+  $('#btnClearHistory').onclick = () => clearKey('history');
+  $('#btnClearFeedback').onclick = () => clearKey('feedback');
+  $('#btnClearAll').onclick = () => clearKey('all');
+
+  renderAll();
+  // Start on My Closet until there is something to decide from.
+  switchTab(state.wardrobe.length ? 'today' : 'wardrobe');
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
