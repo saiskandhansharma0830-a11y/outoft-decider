@@ -1,6 +1,6 @@
 /* Outfit Decider service worker: makes the app open instantly and work offline.
    Bump CACHE_VERSION whenever any cached file changes, so phones fetch the new copies. */
-const CACHE_VERSION = 'outfit-decider-v4';
+const CACHE_VERSION = 'outfit-decider-v5';
 const APP_SHELL = [
   './',
   './index.html',
